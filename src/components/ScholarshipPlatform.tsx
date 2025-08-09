@@ -4,7 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { Search, Star, Users, BookOpen, TrendingUp, ChevronRight, Menu, X, LogOut, User } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
+import { platformAPI, PlatformStatistics } from '@/lib/api';
 import AuthModal from './AuthModal';
+import ReviewModal from './ReviewModal';
 
 // Mock university ad data
 const universityAds = [
@@ -103,9 +105,62 @@ const ScholarshipPlatform: React.FC = () => {
     const [currentAdIndex, setCurrentAdIndex] = useState(0);
     const [authModalOpen, setAuthModalOpen] = useState(false);
     const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
+    const [reviewModalOpen, setReviewModalOpen] = useState(false);
+    const [platformStats, setPlatformStats] = useState<PlatformStatistics>({
+        total_users: 0,
+        total_scholarships: 0,
+        total_reviews: 0,
+        average_rating: 0.0,
+        rating_display: 'Loading...',
+        total_scholarship_amount: 0,
+        formatted_scholarship_amount: '$0+',
+        students_helped: 0
+    });
+    const [statsLoading, setStatsLoading] = useState(true);
 
     const { user, isAuthenticated, logout, isLoading } = useAuth();
     const router = useRouter();
+
+    // Fetch platform statistics
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                setStatsLoading(true);
+                const stats = await platformAPI.getStatistics();
+                setPlatformStats(stats);
+            } catch (error) {
+                console.error('Failed to fetch platform statistics:', error);
+                // On error, show meaningful error state instead of fake data
+                setPlatformStats({
+                    total_users: 0,
+                    total_scholarships: 0,
+                    total_reviews: 0,
+                    average_rating: 0.0,
+                    rating_display: 'Unable to load reviews',
+                    total_scholarship_amount: 0,
+                    formatted_scholarship_amount: 'Unable to load',
+                    students_helped: 0
+                });
+            } finally {
+                setStatsLoading(false);
+            }
+        };
+
+        fetchStats();
+    }, []);
+
+    // Refetch stats when review is submitted
+    const handleReviewSubmitted = async () => {
+        try {
+            setStatsLoading(true);
+            const stats = await platformAPI.getStatistics();
+            setPlatformStats(stats);
+        } catch (error) {
+            console.error('Failed to refresh platform statistics:', error);
+        } finally {
+            setStatsLoading(false);
+        }
+    };
 
     // Rotate featured university ads
     useEffect(() => {
@@ -159,6 +214,15 @@ const ScholarshipPlatform: React.FC = () => {
                             <a href="#" className="text-gray-300 hover:text-white transition-colors">Search</a>
                             <a href="#" className="text-gray-300 hover:text-white transition-colors">Categories</a>
                             <a href="#" className="text-gray-300 hover:text-white transition-colors">Resources</a>
+                            {isAuthenticated && (
+                                <button
+                                    onClick={() => setReviewModalOpen(true)}
+                                    className="text-gray-300 hover:text-white transition-colors flex items-center gap-1"
+                                >
+                                    <Star size={16} />
+                                    Review
+                                </button>
+                            )}
                             <a href="#" className="text-gray-300 hover:text-white transition-colors">For Universities</a>
                         </div>
 
@@ -212,6 +276,15 @@ const ScholarshipPlatform: React.FC = () => {
                         <a href="#" className="block text-gray-300 hover:text-white">Search</a>
                         <a href="#" className="block text-gray-300 hover:text-white">Categories</a>
                         <a href="#" className="block text-gray-300 hover:text-white">Resources</a>
+                        {isAuthenticated && (
+                            <button
+                                onClick={() => setReviewModalOpen(true)}
+                                className="block w-full text-left text-gray-300 hover:text-white flex items-center gap-2"
+                            >
+                                <Star size={16} />
+                                Leave a Review
+                            </button>
+                        )}
                         <a href="#" className="block text-gray-300 hover:text-white">For Universities</a>
                         <hr className="border-gray-700" />
                         {isAuthenticated ? (
@@ -267,10 +340,15 @@ const ScholarshipPlatform: React.FC = () => {
                         <div className="flex items-center justify-center gap-2 mb-8">
                             <div className="flex text-yellow-400">
                                 {[...Array(5)].map((_, i) => (
-                                    <Star key={i} size={20} fill="currentColor" />
+                                    <Star
+                                        key={i}
+                                        size={20}
+                                        fill={i < Math.floor(platformStats.average_rating) ? "currentColor" : "none"}
+                                        className={i < Math.floor(platformStats.average_rating) ? "text-yellow-400" : "text-gray-500"}
+                                    />
                                 ))}
                             </div>
-                            <span className="text-gray-400">5/5 from 15,429 students</span>
+                            <span className="text-gray-400">{platformStats.rating_display}</span>
                         </div>
 
                         {/* CTA Buttons */}
@@ -310,16 +388,34 @@ const ScholarshipPlatform: React.FC = () => {
                     {/* Stats */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
                         <div className="text-center">
-                            <div className="text-4xl lg:text-5xl font-bold text-blue-400 mb-2">$2.4B+</div>
+                            <div className="text-4xl lg:text-5xl font-bold text-blue-400 mb-2">
+                                {statsLoading ? (
+                                    <div className="animate-pulse">Loading...</div>
+                                ) : (
+                                    platformStats.formatted_scholarship_amount
+                                )}
+                            </div>
                             <div className="text-gray-400">Available in Scholarships</div>
                         </div>
                         <div className="text-center">
-                            <div className="text-4xl lg:text-5xl font-bold text-purple-400 mb-2">25,000+</div>
+                            <div className="text-4xl lg:text-5xl font-bold text-purple-400 mb-2">
+                                {statsLoading ? (
+                                    <div className="animate-pulse">Loading...</div>
+                                ) : (
+                                    `${platformStats.total_scholarships.toLocaleString()}${platformStats.total_scholarships > 0 ? '+' : ''}`
+                                )}
+                            </div>
                             <div className="text-gray-400">Active Opportunities</div>
                         </div>
                         <div className="text-center">
-                            <div className="text-4xl lg:text-5xl font-bold text-pink-400 mb-2">89%</div>
-                            <div className="text-gray-400">Success Rate</div>
+                            <div className="text-4xl lg:text-5xl font-bold text-pink-400 mb-2">
+                                {statsLoading ? (
+                                    <div className="animate-pulse">Loading...</div>
+                                ) : (
+                                    platformStats.students_helped.toLocaleString()
+                                )}
+                            </div>
+                            <div className="text-gray-400">Students Helped</div>
                         </div>
                     </div>
                 </div>
@@ -387,11 +483,47 @@ const ScholarshipPlatform: React.FC = () => {
                 </div>
             </section>
 
+            {/* Review CTA Section */}
+            {isAuthenticated && (
+                <section className="py-20 bg-gradient-to-r from-blue-900/20 to-purple-900/20">
+                    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                        <div className="bg-gray-800/50 rounded-2xl p-8 border border-gray-700">
+                            <div className="text-4xl mb-4">⭐</div>
+                            <h2 className="text-2xl lg:text-3xl font-bold mb-4">
+                                Share Your CampusConnect Experience
+                            </h2>
+                            <p className="text-gray-300 text-lg mb-6">
+                                Help other students discover scholarships by sharing your experience with our platform
+                            </p>
+                            <button
+                                onClick={() => setReviewModalOpen(true)}
+                                className="bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded-lg font-semibold text-lg transition-all duration-200 transform hover:scale-105 flex items-center gap-2 mx-auto"
+                            >
+                                <Star size={20} />
+                                Leave a Review
+                            </button>
+                            {platformStats.total_reviews > 0 && (
+                                <p className="text-gray-400 text-sm mt-4">
+                                    Join {platformStats.total_reviews.toLocaleString()} other students who have shared their experience
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                </section>
+            )}
+
             {/* Auth Modal */}
             <AuthModal
                 isOpen={authModalOpen}
                 onClose={() => setAuthModalOpen(false)}
                 initialMode={authModalMode}
+            />
+
+            {/* Review Modal */}
+            <ReviewModal
+                isOpen={reviewModalOpen}
+                onClose={() => setReviewModalOpen(false)}
+                onReviewSubmitted={handleReviewSubmitted}
             />
         </div>
     );

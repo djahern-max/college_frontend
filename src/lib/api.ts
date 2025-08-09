@@ -19,6 +19,14 @@ export const API_ENDPOINTS = {
     SCHOLARSHIP_BY_ID: (id: number) => `/scholarships/${id}`,
     ACTIVE_SCHOLARSHIPS: '/scholarships/active',
     SCHOLARSHIP_STATISTICS: '/scholarships/statistics',
+
+    // Platform statistics
+    PLATFORM_STATISTICS: '/statistics/platform',
+
+    // Review endpoints
+    REVIEWS: '/reviews',
+    MY_REVIEW: '/reviews/my',
+    REVIEW_STATISTICS: '/reviews/statistics',
 } as const;
 
 // Helper function to make API requests
@@ -130,5 +138,92 @@ export const authAPI = {
         }>(API_ENDPOINTS.REFRESH, {
             method: 'POST',
         });
+    },
+};
+
+// Platform statistics API
+export const platformAPI = {
+    async getStatistics() {
+        return apiRequest<{
+            total_users: number;
+            total_scholarships: number;
+            total_reviews: number;
+            average_rating: number;
+            rating_display: string;
+            total_scholarship_amount: number;
+            formatted_scholarship_amount: string;
+        }>(API_ENDPOINTS.PLATFORM_STATISTICS);
+    },
+};
+
+// Review API
+export const reviewAPI = {
+    async createReview(reviewData: {
+        rating: number;
+        title?: string;
+        comment?: string;
+    }) {
+        return apiRequest<{
+            id: number;
+            user_id: number;
+            rating: number;
+            title?: string;
+            comment?: string;
+            created_at: string;
+            user_name?: string;
+        }>(API_ENDPOINTS.REVIEWS, {
+            method: 'POST',
+            body: JSON.stringify(reviewData),
+        });
+    },
+
+    async getMyReview() {
+        return apiRequest<{
+            id: number;
+            user_id: number;
+            rating: number;
+            title?: string;
+            comment?: string;
+            created_at: string;
+            user_name?: string;
+        }>(API_ENDPOINTS.MY_REVIEW);
+    },
+
+    async updateMyReview(reviewData: {
+        rating?: number;
+        title?: string;
+        comment?: string;
+    }) {
+        return apiRequest<{
+            id: number;
+            user_id: number;
+            rating: number;
+            title?: string;
+            comment?: string;
+            created_at: string;
+            updated_at?: string;
+            user_name?: string;
+        }>(API_ENDPOINTS.MY_REVIEW, {
+            method: 'PUT',
+            body: JSON.stringify(reviewData),
+        });
+    },
+
+    async deleteMyReview() {
+        return apiRequest(API_ENDPOINTS.MY_REVIEW, {
+            method: 'DELETE',
+        });
+    },
+
+    async getAllReviews(skip = 0, limit = 100) {
+        return apiRequest<Array<{
+            id: number;
+            user_id: number;
+            rating: number;
+            title?: string;
+            comment?: string;
+            created_at: string;
+            user_name?: string;
+        }>>(`${API_ENDPOINTS.REVIEWS}?skip=${skip}&limit=${limit}`);
     },
 };
