@@ -50,6 +50,14 @@ const ScholarshipCard: React.FC<ScholarshipCardProps> = ({ scholarship, onApply 
 
     const getTypeColor = (type: string) => {
         const colors = {
+            MERIT: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+            NEED_BASED: 'bg-green-500/10 text-green-400 border-green-500/20',
+            ATHLETIC: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+            MINORITY: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+            FIELD_SPECIFIC: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+            GEOGRAPHIC: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
+            OTHER: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
+            // Legacy lowercase support
             merit: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
             need_based: 'bg-green-500/10 text-green-400 border-green-500/20',
             athletic: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
@@ -58,7 +66,7 @@ const ScholarshipCard: React.FC<ScholarshipCardProps> = ({ scholarship, onApply 
             geographic: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
             other: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
         };
-        return colors[type as keyof typeof colors] || colors.other;
+        return colors[type as keyof typeof colors] || colors.OTHER;
     };
 
     const isDeadlineSoon = (deadline?: string) => {
@@ -68,6 +76,13 @@ const ScholarshipCard: React.FC<ScholarshipCardProps> = ({ scholarship, onApply 
         const diffTime = date.getTime() - now.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         return diffDays <= 30 && diffDays >= 0;
+    };
+
+    const isDeadlinePassed = (deadline?: string) => {
+        if (!deadline) return false;
+        const date = new Date(deadline);
+        const now = new Date();
+        return date < now;
     };
 
     return (
@@ -145,32 +160,41 @@ const ScholarshipCard: React.FC<ScholarshipCardProps> = ({ scholarship, onApply 
                 )}
             </div>
 
-            {/* Actions - This will always be at the bottom */}
+            {/* Actions - ONLY ONE BUTTON */}
             <div className="mt-auto">
-                <div className="flex gap-3 mb-3">
-                    <button
+                {scholarship.application_url && !isDeadlinePassed(scholarship.deadline) ? (
+                    <a
+                        href={scholarship.application_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         onClick={() => onApply?.(scholarship)}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2"
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2 transform hover:scale-105"
+                        title="Apply for this scholarship"
                     >
                         <BookOpen size={16} />
                         Apply Now
+                    </a>
+                ) : (
+                    <button
+                        disabled
+                        className="w-full bg-gray-600 text-gray-400 px-4 py-2 rounded-lg font-medium cursor-not-allowed flex items-center justify-center gap-2"
+                        title={
+                            !scholarship.application_url
+                                ? 'Application URL not available'
+                                : 'Application deadline has passed'
+                        }
+                    >
+                        <BookOpen size={16} />
+                        {!scholarship.application_url
+                            ? 'No Application URL'
+                            : 'Deadline Passed'
+                        }
                     </button>
-
-                    {scholarship.application_url && (
-                        <a
-                            href={scholarship.application_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-4 py-2 border border-gray-600 hover:border-gray-500 text-gray-300 hover:text-white rounded-lg transition-colors duration-200 flex items-center gap-2"
-                        >
-                            <ExternalLink size={16} />
-                        </a>
-                    )}
-                </div>
+                )}
 
                 {/* Contact info */}
                 {scholarship.contact_email && (
-                    <div className="pt-3 border-t border-gray-700">
+                    <div className="pt-3 border-t border-gray-700 mt-3">
                         <p className="text-xs text-gray-500">
                             Contact: {scholarship.contact_email}
                         </p>
