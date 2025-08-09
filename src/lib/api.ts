@@ -178,15 +178,24 @@ export const reviewAPI = {
     },
 
     async getMyReview() {
-        return apiRequest<{
-            id: number;
-            user_id: number;
-            rating: number;
-            title?: string;
-            comment?: string;
-            created_at: string;
-            user_name?: string;
-        }>(API_ENDPOINTS.MY_REVIEW);
+        try {
+            return await apiRequest<{
+                id: number;
+                user_id: number;
+                rating: number;
+                title?: string;
+                comment?: string;
+                created_at: string;
+                user_name?: string;
+            }>(API_ENDPOINTS.MY_REVIEW);
+        } catch (error: any) {
+            // If it's a 404, return null instead of throwing
+            if (error.message?.includes('404') || error.message?.includes('not found')) {
+                return null;
+            }
+            // Re-throw other errors
+            throw error;
+        }
     },
 
     async updateMyReview(reviewData: {

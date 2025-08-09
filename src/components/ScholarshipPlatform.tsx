@@ -1,112 +1,174 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Star, Users, BookOpen, TrendingUp, ChevronRight, Menu, X, LogOut, User } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
+import { Search, Star, BookOpen, TrendingUp, DollarSign, Calendar, ExternalLink } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { platformAPI, PlatformStatistics } from '@/lib/api';
-import AuthModal from './AuthModal';
-import ReviewModal from './ReviewModal';
+import { platformAPI } from '@/lib/api';
+import { scholarshipAPI } from '@/lib/scholarshipAPI';
 
-// Mock university ad data
-const universityAds = [
-    {
-        id: 1,
-        name: "Stanford University",
-        logo: "🎓",
-        tagline: "Innovate. Impact. Stanford.",
-        color: "from-red-600 to-red-700",
-        scholarship: "$75,000 Merit Scholarship",
-        deadline: "March 15, 2024"
-    },
-    {
-        id: 2,
-        name: "MIT",
-        logo: "🔬",
-        tagline: "Mind and Hand",
-        color: "from-gray-800 to-gray-900",
-        scholarship: "$65,000 Need-Based Aid",
-        deadline: "January 1, 2024"
-    },
-    {
-        id: 3,
-        name: "UC Berkeley",
-        logo: "🐻",
-        tagline: "Fiat Lux - Let There Be Light",
-        color: "from-blue-600 to-blue-700",
-        scholarship: "$50,000 California Resident Grant",
-        deadline: "November 30, 2023"
-    },
-    {
-        id: 4,
-        name: "Harvard University",
-        logo: "🏛️",
-        tagline: "Veritas",
-        color: "from-red-800 to-red-900",
-        scholarship: "$80,000 Full Scholarship",
-        deadline: "January 1, 2024"
+// Define the platform statistics interface locally
+interface PlatformStats {
+    total_users: number;
+    total_scholarships: number;
+    total_reviews: number;
+    average_rating: number;
+    rating_display: string;
+    total_scholarship_amount: number;
+    formatted_scholarship_amount: string;
+    students_helped: number;
+}
+
+// Scholarship Banner Component
+const ScholarshipBanner: React.FC = () => {
+    const [scholarships, setScholarships] = useState<any[]>([]);
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchScholarships = async () => {
+            try {
+                const response = await scholarshipAPI.getActiveScholarships(0, 20);
+                setScholarships(response || []);
+            } catch (error) {
+                console.error('Failed to fetch scholarships for banner:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchScholarships();
+    }, []);
+
+    // Auto-rotate scholarships
+    useEffect(() => {
+        if (scholarships.length > 0) {
+            const interval = setInterval(() => {
+                setCurrentIndex((prev) => (prev + 1) % scholarships.length);
+            }, 4000); // Change every 4 seconds
+            return () => clearInterval(interval);
+        }
+    }, [scholarships.length]);
+
+    const formatAmount = (scholarship: any) => {
+        if (scholarship.amount_exact) {
+            return `${parseFloat(scholarship.amount_exact).toLocaleString()}`;
+        } else if (scholarship.amount_min && scholarship.amount_max) {
+            return `${parseFloat(scholarship.amount_min).toLocaleString()} - ${parseFloat(scholarship.amount_max).toLocaleString()}`;
+        } else if (scholarship.amount_min) {
+            return `${parseFloat(scholarship.amount_min).toLocaleString()}+`;
+        } else if (scholarship.amount_max) {
+            return `Up to ${parseFloat(scholarship.amount_max).toLocaleString()}`;
+        }
+        return 'Amount varies';
+    };
+
+    const formatDeadline = (deadline?: string) => {
+        if (!deadline) return 'No deadline';
+        const date = new Date(deadline);
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    };
+
+    if (loading) {
+        return (
+            <div className="bg-gray-800/30 rounded-2xl p-8 animate-pulse">
+                <div className="h-8 bg-gray-700 rounded w-3/4 mb-4"></div>
+                <div className="h-4 bg-gray-700 rounded w-1/2 mb-2"></div>
+                <div className="h-4 bg-gray-700 rounded w-1/3"></div>
+            </div>
+        );
     }
-];
 
-interface University {
-    id: number;
-    name: string;
-    logo: string;
-    tagline: string;
-    color: string;
-    scholarship: string;
-    deadline: string;
-}
+    if (scholarships.length === 0) {
+        return (
+            <div className="bg-gray-800/30 rounded-2xl p-8 text-center">
+                <p className="text-gray-400">No scholarships available at the moment.</p>
+            </div>
+        );
+    }
 
-interface UniversityAdCardProps {
-    university: University;
-    index: number;
-}
+    const currentScholarship = scholarships[currentIndex];
 
-const UniversityAdCard: React.FC<UniversityAdCardProps> = ({ university, index }) => {
     return (
-        <div
-            className={`relative bg-gradient-to-br ${university.color} rounded-2xl p-6 text-white transform hover:scale-105 transition-all duration-300 hover:shadow-2xl cursor-pointer group`}
-            style={{
-                animationDelay: `${index * 0.2}s`,
-            }}
-        >
-            <div className="absolute inset-0 bg-white/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div className="relative bg-gradient-to-r from-blue-900/30 to-purple-900/30 rounded-2xl p-8 border border-gray-700 overflow-hidden">
+            {/* Background animation */}
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-purple-600/5 animate-pulse"></div>
 
             <div className="relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                    <div className="text-4xl">{university.logo}</div>
-                    <div className="bg-white/20 rounded-full px-3 py-1 text-xs font-medium">
-                        Featured
+                <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+                    <div className="flex-1 text-center lg:text-left">
+                        <div className="inline-block bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full text-sm font-medium mb-4">
+                            Featured Scholarship
+                        </div>
+
+                        <h3 className="text-2xl lg:text-3xl font-bold text-white mb-3 leading-tight">
+                            {currentScholarship.title}
+                        </h3>
+
+                        <p className="text-gray-300 text-lg mb-4">
+                            {currentScholarship.provider}
+                        </p>
+
+                        {currentScholarship.description && (
+                            <p className="text-gray-400 mb-6 line-clamp-2">
+                                {currentScholarship.description}
+                            </p>
+                        )}
+
+                        <div className="flex flex-wrap items-center gap-6 text-sm">
+                            <div className="flex items-center gap-2">
+                                <DollarSign size={16} className="text-green-400" />
+                                <span className="text-green-400 font-semibold">
+                                    {formatAmount(currentScholarship)}
+                                </span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <Calendar size={16} className="text-orange-400" />
+                                <span className="text-orange-400">
+                                    Deadline: {formatDeadline(currentScholarship.deadline)}
+                                </span>
+                            </div>
+
+                            <div className="bg-purple-600/20 text-purple-400 px-3 py-1 rounded-full">
+                                {currentScholarship.scholarship_type?.replace('_', ' ').toUpperCase() || 'SCHOLARSHIP'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col items-center gap-4">
+                        <button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 flex items-center gap-2">
+                            <ExternalLink size={18} />
+                            View Details
+                        </button>
+
+                        {/* Progress indicators */}
+                        <div className="flex gap-2">
+                            {scholarships.slice(0, 10).map((_, index) => (
+                                <div
+                                    key={index}
+                                    className={`w-2 h-2 rounded-full transition-all duration-300 ${index === currentIndex % 10 ? 'bg-blue-400 w-8' : 'bg-gray-600'
+                                        }`}
+                                />
+                            ))}
+                        </div>
+
+                        <p className="text-gray-500 text-sm">
+                            Showing {currentIndex + 1} of {scholarships.length} scholarships
+                        </p>
                     </div>
                 </div>
-
-                <h3 className="text-xl font-bold mb-2">{university.name}</h3>
-                <p className="text-white/80 text-sm mb-4">{university.tagline}</p>
-
-                <div className="space-y-2">
-                    <div className="bg-white/20 rounded-lg p-3">
-                        <p className="font-semibold text-sm">{university.scholarship}</p>
-                        <p className="text-white/70 text-xs">Deadline: {university.deadline}</p>
-                    </div>
-                </div>
-
-                <button className="mt-4 w-full bg-white text-gray-900 rounded-lg py-2 px-4 font-medium hover:bg-white/90 transition-colors duration-200 flex items-center justify-center gap-2">
-                    Learn More <ChevronRight size={16} />
-                </button>
             </div>
         </div>
     );
 };
 
 const ScholarshipPlatform: React.FC = () => {
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [currentAdIndex, setCurrentAdIndex] = useState(0);
-    const [authModalOpen, setAuthModalOpen] = useState(false);
-    const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
-    const [reviewModalOpen, setReviewModalOpen] = useState(false);
-    const [platformStats, setPlatformStats] = useState<PlatformStatistics>({
+    const [platformStats, setPlatformStats] = useState<PlatformStats>({
         total_users: 0,
         total_scholarships: 0,
         total_reviews: 0,
@@ -118,7 +180,6 @@ const ScholarshipPlatform: React.FC = () => {
     });
     const [statsLoading, setStatsLoading] = useState(true);
 
-    const { user, isAuthenticated, logout, isLoading } = useAuth();
     const router = useRouter();
 
     // Fetch platform statistics
@@ -127,10 +188,9 @@ const ScholarshipPlatform: React.FC = () => {
             try {
                 setStatsLoading(true);
                 const stats = await platformAPI.getStatistics();
-                setPlatformStats(stats);
+                setPlatformStats(stats as PlatformStats);
             } catch (error) {
                 console.error('Failed to fetch platform statistics:', error);
-                // On error, show meaningful error state instead of fake data
                 setPlatformStats({
                     total_users: 0,
                     total_scholarships: 0,
@@ -149,41 +209,6 @@ const ScholarshipPlatform: React.FC = () => {
         fetchStats();
     }, []);
 
-    // Refetch stats when review is submitted
-    const handleReviewSubmitted = async () => {
-        try {
-            setStatsLoading(true);
-            const stats = await platformAPI.getStatistics();
-            setPlatformStats(stats);
-        } catch (error) {
-            console.error('Failed to refresh platform statistics:', error);
-        } finally {
-            setStatsLoading(false);
-        }
-    };
-
-    // Rotate featured university ads
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentAdIndex((prev) => (prev + 1) % universityAds.length);
-        }, 5000);
-        return () => clearInterval(interval);
-    }, []);
-
-    const handleLogin = () => {
-        setAuthModalMode('login');
-        setAuthModalOpen(true);
-    };
-
-    const handleRegister = () => {
-        setAuthModalMode('register');
-        setAuthModalOpen(true);
-    };
-
-    const handleLogout = () => {
-        logout();
-    };
-
     const handleStartSearching = () => {
         router.push('/search');
     };
@@ -198,125 +223,7 @@ const ScholarshipPlatform: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-900 text-white">
-            {/* Navigation */}
-            <nav className="border-b border-gray-800 bg-gray-900/95 backdrop-blur-sm sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-16">
-                        <div className="flex items-center gap-3">
-                            <div className="text-2xl">🎓</div>
-                            <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                                CampusConnect
-                            </span>
-                        </div>
-
-                        <div className="hidden md:flex items-center space-x-8">
-                            <a href="#" className="text-gray-300 hover:text-white transition-colors">Search</a>
-                            <a href="#" className="text-gray-300 hover:text-white transition-colors">Categories</a>
-                            <a href="#" className="text-gray-300 hover:text-white transition-colors">Resources</a>
-                            {isAuthenticated && (
-                                <button
-                                    onClick={() => setReviewModalOpen(true)}
-                                    className="text-gray-300 hover:text-white transition-colors flex items-center gap-1"
-                                >
-                                    <Star size={16} />
-                                    Review
-                                </button>
-                            )}
-                            <a href="#" className="text-gray-300 hover:text-white transition-colors">For Universities</a>
-                        </div>
-
-                        <div className="hidden md:flex items-center gap-4">
-                            {isAuthenticated ? (
-                                <div className="flex items-center gap-4">
-                                    <div className="flex items-center gap-2 text-gray-300">
-                                        <User size={16} />
-                                        <span>Hi, {user?.first_name || user?.username}</span>
-                                    </div>
-                                    <button
-                                        onClick={handleLogout}
-                                        className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors"
-                                    >
-                                        <LogOut size={16} />
-                                        Logout
-                                    </button>
-                                </div>
-                            ) : (
-                                <>
-                                    <button
-                                        onClick={handleLogin}
-                                        className="text-gray-300 hover:text-white transition-colors"
-                                    >
-                                        Login
-                                    </button>
-                                    <button
-                                        onClick={handleRegister}
-                                        className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-medium transition-colors"
-                                    >
-                                        Sign Up
-                                    </button>
-                                </>
-                            )}
-                        </div>
-
-                        <button
-                            className="md:hidden"
-                            onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        >
-                            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-                        </button>
-                    </div>
-                </div>
-            </nav>
-
-            {/* Mobile Menu */}
-            {isMenuOpen && (
-                <div className="md:hidden bg-gray-800 border-b border-gray-700">
-                    <div className="px-4 py-4 space-y-3">
-                        <a href="#" className="block text-gray-300 hover:text-white">Search</a>
-                        <a href="#" className="block text-gray-300 hover:text-white">Categories</a>
-                        <a href="#" className="block text-gray-300 hover:text-white">Resources</a>
-                        {isAuthenticated && (
-                            <button
-                                onClick={() => setReviewModalOpen(true)}
-                                className="block w-full text-left text-gray-300 hover:text-white flex items-center gap-2"
-                            >
-                                <Star size={16} />
-                                Leave a Review
-                            </button>
-                        )}
-                        <a href="#" className="block text-gray-300 hover:text-white">For Universities</a>
-                        <hr className="border-gray-700" />
-                        {isAuthenticated ? (
-                            <>
-                                <div className="text-gray-300">Hi, {user?.first_name || user?.username}</div>
-                                <button
-                                    onClick={handleLogout}
-                                    className="block w-full text-left text-gray-300 hover:text-white"
-                                >
-                                    Logout
-                                </button>
-                            </>
-                        ) : (
-                            <>
-                                <button
-                                    onClick={handleLogin}
-                                    className="block w-full text-left text-gray-300 hover:text-white"
-                                >
-                                    Login
-                                </button>
-                                <button
-                                    onClick={handleRegister}
-                                    className="block w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-medium"
-                                >
-                                    Sign Up
-                                </button>
-                            </>
-                        )}
-                    </div>
-                </div>
-            )}
-
+        <>
             {/* Hero Section */}
             <section className="relative py-20 lg:py-32 overflow-hidden">
                 {/* Background gradient */}
@@ -416,116 +323,15 @@ const ScholarshipPlatform: React.FC = () => {
                                 )}
                             </div>
                             <div className="text-gray-400">Students Helped</div>
+
                         </div>
+                        <ScholarshipBanner />
                     </div>
                 </div>
             </section>
 
-            {/* Featured University Ads Section */}
-            <section className="py-20 bg-gray-800/50">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center mb-12">
-                        <h2 className="text-3xl lg:text-4xl font-bold mb-4">
-                            Featured Universities & Scholarships
-                        </h2>
-                        <p className="text-xl text-gray-400">
-                            Discover exclusive opportunities from top institutions
-                        </p>
-                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {universityAds.map((university, index) => (
-                            <UniversityAdCard key={university.id} university={university} index={index} />
-                        ))}
-                    </div>
-
-                    <div className="text-center mt-12">
-                        <button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-8 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105">
-                            View All Partner Universities
-                        </button>
-                    </div>
-                </div>
-            </section>
-
-            {/* How It Works */}
-            <section className="py-20">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center mb-16">
-                        <h2 className="text-3xl lg:text-4xl font-bold mb-4">How It Works</h2>
-                        <p className="text-xl text-gray-400">Three simple steps to find your perfect scholarship</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <div className="text-center group">
-                            <div className="bg-blue-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-200">
-                                <Search size={24} />
-                            </div>
-                            <h3 className="text-xl font-semibold mb-4">1. Search & Filter</h3>
-                            <p className="text-gray-400">Use our advanced filters to find scholarships that match your profile, major, and goals.</p>
-                        </div>
-
-                        <div className="text-center group">
-                            <div className="bg-purple-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-200">
-                                <BookOpen size={24} />
-                            </div>
-                            <h3 className="text-xl font-semibold mb-4">2. Apply Directly</h3>
-                            <p className="text-gray-400">Submit applications through our streamlined process or get redirected to official portals.</p>
-                        </div>
-
-                        <div className="text-center group">
-                            <div className="bg-pink-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-200">
-                                <TrendingUp size={24} />
-                            </div>
-                            <h3 className="text-xl font-semibold mb-4">3. Track & Win</h3>
-                            <p className="text-gray-400">Monitor your application status and celebrate your scholarship wins with our community.</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Review CTA Section */}
-            {isAuthenticated && (
-                <section className="py-20 bg-gradient-to-r from-blue-900/20 to-purple-900/20">
-                    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                        <div className="bg-gray-800/50 rounded-2xl p-8 border border-gray-700">
-                            <div className="text-4xl mb-4">⭐</div>
-                            <h2 className="text-2xl lg:text-3xl font-bold mb-4">
-                                Share Your CampusConnect Experience
-                            </h2>
-                            <p className="text-gray-300 text-lg mb-6">
-                                Help other students discover scholarships by sharing your experience with our platform
-                            </p>
-                            <button
-                                onClick={() => setReviewModalOpen(true)}
-                                className="bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded-lg font-semibold text-lg transition-all duration-200 transform hover:scale-105 flex items-center gap-2 mx-auto"
-                            >
-                                <Star size={20} />
-                                Leave a Review
-                            </button>
-                            {platformStats.total_reviews > 0 && (
-                                <p className="text-gray-400 text-sm mt-4">
-                                    Join {platformStats.total_reviews.toLocaleString()} other students who have shared their experience
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                </section>
-            )}
-
-            {/* Auth Modal */}
-            <AuthModal
-                isOpen={authModalOpen}
-                onClose={() => setAuthModalOpen(false)}
-                initialMode={authModalMode}
-            />
-
-            {/* Review Modal */}
-            <ReviewModal
-                isOpen={reviewModalOpen}
-                onClose={() => setReviewModalOpen(false)}
-                onReviewSubmitted={handleReviewSubmitted}
-            />
-        </div>
+        </>
     );
 };
 

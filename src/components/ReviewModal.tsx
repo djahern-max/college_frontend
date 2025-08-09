@@ -34,13 +34,21 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, onReviewSubm
     const checkExistingReview = async () => {
         try {
             const review = await reviewAPI.getMyReview();
-            setExistingReview(review);
-            setRating(review.rating);
-            setTitle(review.title || '');
-            setComment(review.comment || '');
-            setIsEditing(true);
+            if (review) {
+                // User has an existing review
+                setExistingReview(review);
+                setRating(review.rating);
+                setTitle(review.title || '');
+                setComment(review.comment || '');
+                setIsEditing(true);
+            } else {
+                // No existing review
+                setExistingReview(null);
+                setIsEditing(false);
+            }
         } catch (error) {
-            // No existing review, that's fine
+            // Some other error occurred
+            console.error('Error checking for existing review:', error);
             setExistingReview(null);
             setIsEditing(false);
         }
