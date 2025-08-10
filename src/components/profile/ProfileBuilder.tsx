@@ -1,22 +1,58 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronRight, ChevronLeft, User, GraduationCap, Trophy, Heart, Briefcase, Award, Camera, Save, SkipForward, HelpCircle } from 'lucide-react';
+'use client';
 
-// Mock API functions - replace with real API calls
-const saveProfileData = async (data) => {
+import React, { useState, useEffect } from 'react';
+import { ChevronRight, ChevronLeft, User, GraduationCap, Trophy, Heart, Briefcase, Save, SkipForward, HelpCircle } from 'lucide-react';
+
+// Types for the profile data structure
+interface ProfileData {
+    [key: string]: string | number | string[] | { [key: string]: string | number } | undefined;
+}
+
+interface QuestionOption {
+    value: string | number;
+    label: string;
+}
+
+interface Question {
+    id: string;
+    type: 'text' | 'number' | 'select' | 'slider' | 'multi-select' | 'multi-text' | 'work-experience';
+    question: string;
+    placeholder?: string;
+    tip?: string;
+    required?: boolean;
+    optional?: boolean;
+    min?: number;
+    max?: number;
+    step?: number;
+    options?: QuestionOption[];
+    dependsOn?: string;
+    privacy?: boolean;
+}
+
+interface Section {
+    id: string;
+    title: string;
+    icon: React.ComponentType<{ size?: number }>;
+    color: string;
+    questions: Question[];
+}
+
+// Mock API function - replace with real API calls
+const saveProfileData = async (data: ProfileData): Promise<void> => {
     console.log('Saving profile data:', data);
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500));
 };
 
-const ProfileBuilder = () => {
-    const [currentSection, setCurrentSection] = useState(0);
-    const [currentQuestion, setCurrentQuestion] = useState(0);
-    const [profileData, setProfileData] = useState({});
-    const [isLoading, setIsLoading] = useState(false);
-    const [lastSaved, setLastSaved] = useState(null);
+const ProfileBuilder: React.FC = () => {
+    const [currentSection, setCurrentSection] = useState<number>(0);
+    const [currentQuestion, setCurrentQuestion] = useState<number>(0);
+    const [profileData, setProfileData] = useState<ProfileData>({});
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
     // Define the interview sections and questions
-    const sections = [
+    const sections: Section[] = [
         {
             id: 'basic',
             title: 'Basic Info',
@@ -103,27 +139,24 @@ const ProfileBuilder = () => {
                     type: 'multi-select',
                     question: "Do you play any sports?",
                     options: [
-                        'Volleyball', 'Basketball', 'Soccer', 'Track & Field', 'Cross Country',
-                        'Swimming', 'Tennis', 'Golf', 'Baseball', 'Softball', 'Football',
-                        'Wrestling', 'Gymnastics', 'Lacrosse', 'Field Hockey', 'Other'
+                        { value: 'Volleyball', label: 'Volleyball' },
+                        { value: 'Basketball', label: 'Basketball' },
+                        { value: 'Soccer', label: 'Soccer' },
+                        { value: 'Track & Field', label: 'Track & Field' },
+                        { value: 'Cross Country', label: 'Cross Country' },
+                        { value: 'Swimming', label: 'Swimming' },
+                        { value: 'Tennis', label: 'Tennis' },
+                        { value: 'Golf', label: 'Golf' },
+                        { value: 'Baseball', label: 'Baseball' },
+                        { value: 'Softball', label: 'Softball' },
+                        { value: 'Football', label: 'Football' },
+                        { value: 'Wrestling', label: 'Wrestling' },
+                        { value: 'Gymnastics', label: 'Gymnastics' },
+                        { value: 'Lacrosse', label: 'Lacrosse' },
+                        { value: 'Field Hockey', label: 'Field Hockey' },
+                        { value: 'Other', label: 'Other' }
                     ],
                     tip: "Athletic participation is great for scholarships like Fisher Cats!"
-                },
-                {
-                    id: 'athletic_positions',
-                    type: 'dynamic-text',
-                    question: "What positions do you play?",
-                    dependsOn: 'sports_played',
-                    placeholder: 'e.g., Setter, Outside Hitter',
-                    tip: "Tell us about your role on each team"
-                },
-                {
-                    id: 'team_captain',
-                    type: 'multi-select',
-                    question: "Have you been a team captain or leader?",
-                    dependsOn: 'sports_played',
-                    options: [], // Will be populated based on sports
-                    tip: "Leadership roles are highly valued by scholarship committees!"
                 },
                 {
                     id: 'athletic_awards',
@@ -155,13 +188,6 @@ const ProfileBuilder = () => {
                     placeholder: 'Approximate total hours',
                     optional: true,
                     tip: "Don't worry about being exact - an estimate is fine!"
-                },
-                {
-                    id: 'leadership_positions',
-                    type: 'multi-text',
-                    question: "Any leadership roles in school or community?",
-                    placeholder: 'e.g., Student Council, Club President',
-                    optional: true
                 }
             ]
         },
@@ -171,12 +197,6 @@ const ProfileBuilder = () => {
             icon: Briefcase,
             color: 'purple',
             questions: [
-                {
-                    id: 'work_experience',
-                    type: 'work-experience',
-                    question: "Do you have any jobs or work experience?",
-                    tip: "Jobs like lifeguarding show responsibility and work ethic!"
-                },
                 {
                     id: 'extracurricular_activities',
                     type: 'multi-text',
@@ -213,11 +233,11 @@ const ProfileBuilder = () => {
     const completedQuestions = sections.slice(0, currentSection).reduce((sum, section) => sum + section.questions.length, 0) + currentQuestion;
     const progressPercentage = Math.round((completedQuestions / totalQuestions) * 100);
 
-    const updateProfileData = (key, value) => {
+    const updateProfileData = (key: string, value: string | number | string[]): void => {
         setProfileData(prev => ({ ...prev, [key]: value }));
     };
 
-    const nextQuestion = () => {
+    const nextQuestion = (): void => {
         if (currentQuestion < currentSectionData.questions.length - 1) {
             setCurrentQuestion(currentQuestion + 1);
         } else if (currentSection < sections.length - 1) {
@@ -226,7 +246,7 @@ const ProfileBuilder = () => {
         }
     };
 
-    const prevQuestion = () => {
+    const prevQuestion = (): void => {
         if (currentQuestion > 0) {
             setCurrentQuestion(currentQuestion - 1);
         } else if (currentSection > 0) {
@@ -235,7 +255,7 @@ const ProfileBuilder = () => {
         }
     };
 
-    const skipQuestion = () => {
+    const skipQuestion = (): void => {
         nextQuestion();
     };
 
@@ -248,7 +268,7 @@ const ProfileBuilder = () => {
                 return (
                     <input
                         type="text"
-                        value={value}
+                        value={typeof value === 'string' ? value : ''}
                         onChange={(e) => updateProfileData(question.id, e.target.value)}
                         placeholder={question.placeholder}
                         className="w-full p-4 text-lg bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors"
@@ -259,7 +279,7 @@ const ProfileBuilder = () => {
                 return (
                     <input
                         type="number"
-                        value={value}
+                        value={typeof value === 'number' ? value : ''}
                         onChange={(e) => updateProfileData(question.id, parseInt(e.target.value) || '')}
                         placeholder={question.placeholder}
                         min={question.min}
@@ -271,12 +291,12 @@ const ProfileBuilder = () => {
             case 'select':
                 return (
                     <select
-                        value={value}
+                        value={typeof value === 'number' ? value : ''}
                         onChange={(e) => updateProfileData(question.id, parseInt(e.target.value))}
                         className="w-full p-4 text-lg bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors"
                     >
                         <option value="">Select an option...</option>
-                        {question.options.map(option => (
+                        {question.options?.map(option => (
                             <option key={option.value} value={option.value}>
                                 {option.label}
                             </option>
@@ -285,6 +305,7 @@ const ProfileBuilder = () => {
                 );
 
             case 'slider':
+                const sliderValue = typeof value === 'number' ? value : question.min || 2.0;
                 return (
                     <div className="space-y-4">
                         <input
@@ -292,16 +313,16 @@ const ProfileBuilder = () => {
                             min={question.min}
                             max={question.max}
                             step={question.step}
-                            value={value || question.min}
+                            value={sliderValue}
                             onChange={(e) => updateProfileData(question.id, parseFloat(e.target.value))}
-                            className="w-full h-3 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                            className="w-full h-3 bg-gray-700 rounded-lg appearance-none cursor-pointer"
                             style={{
-                                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((value || question.min) - question.min) / (question.max - question.min) * 100}%, #374151 ${((value || question.min) - question.min) / (question.max - question.min) * 100}%, #374151 100%)`
+                                background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${((sliderValue - (question.min || 0)) / ((question.max || 4) - (question.min || 0))) * 100}%, #374151 ${((sliderValue - (question.min || 0)) / ((question.max || 4) - (question.min || 0))) * 100}%, #374151 100%)`
                             }}
                         />
                         <div className="text-center">
                             <span className="text-2xl font-bold text-blue-400">
-                                {value || question.min}
+                                {sliderValue}
                             </span>
                             <span className="text-gray-400 ml-2">/ {question.max}</span>
                         </div>
@@ -309,38 +330,39 @@ const ProfileBuilder = () => {
                 );
 
             case 'multi-select':
-                const selectedItems = value || [];
+                const selectedItems = Array.isArray(value) ? value : [];
                 return (
                     <div className="grid grid-cols-2 gap-3">
-                        {question.options.map(option => (
+                        {question.options?.map(option => (
                             <button
-                                key={option}
+                                key={option.value}
                                 onClick={() => {
-                                    const newSelection = selectedItems.includes(option)
-                                        ? selectedItems.filter(item => item !== option)
-                                        : [...selectedItems, option];
+                                    const optionValue = String(option.value);
+                                    const newSelection = selectedItems.includes(optionValue)
+                                        ? selectedItems.filter(item => item !== optionValue)
+                                        : [...selectedItems, optionValue];
                                     updateProfileData(question.id, newSelection);
                                 }}
-                                className={`p-3 rounded-lg border-2 transition-colors ${selectedItems.includes(option)
+                                className={`p-3 rounded-lg border-2 transition-colors ${selectedItems.includes(String(option.value))
                                         ? 'border-blue-500 bg-blue-600/20 text-blue-300'
                                         : 'border-gray-600 bg-gray-700/50 text-gray-300 hover:border-gray-500 hover:bg-gray-700'
                                     }`}
                             >
-                                {option}
+                                {option.label}
                             </button>
                         ))}
                     </div>
                 );
 
             case 'multi-text':
-                const items = value || [];
+                const items = Array.isArray(value) ? value : [];
                 return (
                     <div className="space-y-3">
                         {items.map((item, index) => (
                             <div key={index} className="flex gap-2">
                                 <input
                                     type="text"
-                                    value={item}
+                                    value={String(item)}
                                     onChange={(e) => {
                                         const newItems = [...items];
                                         newItems[index] = e.target.value;

@@ -13,6 +13,12 @@ export const API_ENDPOINTS = {
     USERS: '/users',
     USER_BY_ID: (id: number) => `/users/${id}`,
 
+    // Profile endpoints
+    PROFILES: '/profiles',
+    PROFILE_BY_USER: (userId: number) => `/profiles/user/${userId}`,
+    MY_PROFILE: '/profiles/me',
+    PROFILE_UPDATE: '/profiles/update',
+
     // Scholarship endpoints
     SCHOLARSHIPS: '/scholarships',
     SCHOLARSHIP_SEARCH: '/scholarships/search',
@@ -67,6 +73,78 @@ export async function apiRequest<T>(
         console.error('API request failed:', error);
         throw error;
     }
+}
+
+// Profile API types
+export interface UserProfile {
+    id: number;
+    user_id: number;
+    profile_visibility: string;
+    allow_scholarship_matching: boolean;
+
+    // Personal Information
+    middle_name?: string;
+    phone?: string;
+    date_of_birth?: string;
+    profile_photo_url?: string;
+
+    // Address Information
+    street_address?: string;
+    city?: string;
+    state?: string;
+    zip_code?: string;
+    country?: string;
+
+    // Academic Information
+    high_school_name?: string;
+    graduation_year?: number;
+    gpa?: number;
+    class_rank?: number;
+    class_size?: number;
+    sat_score?: number;
+    act_score?: number;
+
+    // Athletic Information
+    sports_played?: string[];
+    athletic_positions?: { [key: string]: string };
+    years_participated?: { [key: string]: number };
+    team_captain?: string[];
+    athletic_awards?: string[];
+
+    // Community Service & Activities
+    volunteer_hours?: number;
+    volunteer_organizations?: string[];
+    leadership_positions?: string[];
+    extracurricular_activities?: string[];
+    work_experience?: any[];
+
+    // Academic Achievements
+    honors_courses?: string[];
+    academic_awards?: string[];
+
+    // College Plans
+    intended_major?: string;
+    college_preferences?: string[];
+    career_goals?: string;
+
+    // Essays/Personal Statements
+    personal_statement?: string;
+    career_essay?: string;
+    athletic_impact_essay?: string;
+
+    // References
+    references?: any[];
+
+    // Privacy Settings
+    field_privacy_settings?: { [key: string]: string };
+
+    // Profile Completion
+    profile_completed: boolean;
+    completion_percentage: number;
+
+    // Timestamps
+    created_at: string;
+    updated_at?: string;
 }
 
 // Auth-specific API functions
@@ -138,6 +216,44 @@ export const authAPI = {
         }>(API_ENDPOINTS.REFRESH, {
             method: 'POST',
         });
+    },
+};
+
+// Profile API functions
+export const profileAPI = {
+    async getMyProfile() {
+        try {
+            return await apiRequest<UserProfile>(API_ENDPOINTS.MY_PROFILE);
+        } catch (error: any) {
+            // If profile doesn't exist (404), return null
+            if (error.message?.includes('404') || error.message?.includes('not found')) {
+                return null;
+            }
+            throw error;
+        }
+    },
+
+    async createProfile(profileData: Partial<UserProfile>) {
+        return apiRequest<UserProfile>(API_ENDPOINTS.PROFILES, {
+            method: 'POST',
+            body: JSON.stringify(profileData),
+        });
+    },
+
+    async updateProfile(profileData: Partial<UserProfile>) {
+        return apiRequest<UserProfile>(API_ENDPOINTS.PROFILE_UPDATE, {
+            method: 'PATCH',
+            body: JSON.stringify(profileData),
+        });
+    },
+
+    async getProfileByUserId(userId: number) {
+        return apiRequest<UserProfile>(API_ENDPOINTS.PROFILE_BY_USER(userId));
+    },
+
+    // For the Profile Builder auto-save functionality
+    async saveProfileField(fieldName: string, value: any) {
+        return this.updateProfile({ [fieldName]: value });
     },
 };
 
