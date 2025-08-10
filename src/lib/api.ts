@@ -45,6 +45,14 @@ export async function apiRequest<T>(
     // Get token from localStorage if available
     const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
 
+    // Debug logging
+    console.log('API Request:', {
+        url,
+        method: options.method || 'GET',
+        hasToken: !!token,
+        tokenPreview: token ? `${token.substring(0, 20)}...` : 'none'
+    });
+
     const config: RequestInit = {
         headers: {
             'Content-Type': 'application/json',
@@ -57,9 +65,31 @@ export async function apiRequest<T>(
     try {
         const response = await fetch(url, config);
 
+        // Debug response
+        console.log('API Response:', {
+            status: response.status,
+            statusText: response.statusText,
+            url: response.url
+        });
+
         // Handle different response types
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
+
+            // Enhanced error handling for auth issues
+            if (response.status === 401) {
+                console.error('Authentication failed - removing invalid token');
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('access_token');
+                }
+                throw new Error('Not authenticated');
+            }
+
+            if (response.status === 403) {
+                console.error('Forbidden - user may not have permission');
+                throw new Error('Not authenticated');
+            }
+
             throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
         }
 
@@ -254,6 +284,64 @@ export const profileAPI = {
     // For the Profile Builder auto-save functionality
     async saveProfileField(fieldName: string, value: any) {
         return this.updateProfile({ [fieldName]: value });
+    },
+
+    // FIXED: Use correct endpoint paths
+    async completeProfile() {
+        return apiRequest<UserProfile>('/profiles/complete', {
+            method: 'POST',
+        });
+    },
+
+    async getProfileView() {
+        return apiRequest<any>('/profiles/view');
+    },
+
+    // FIXED: Proper FormData handling
+    async uploadProfilePhoto(file: File) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // Get token manually for FormData requests
+        const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+
+        return fetch(`${API_BASE_URL}/profiles/upload/photo`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                // Don't set Content-Type for FormData - let browser set it with boundary
+                ...(token && { Authorization: `Bearer ${token}` })
+            }
+        }).then(async response => {
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        });
+    },
+
+    async uploadEssay(essayType: string, file: File) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // Get token manually for FormData requests
+        const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+
+        return fetch(`${API_BASE_URL}/profiles/upload/essay?essay_type=${essayType}`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                // Don't set Content-Type for FormData - let browser set it with boundary
+                ...(token && { Authorization: `Bearer ${token}` })
+            }
+        }).then(async response => {
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        });
     },
 };
 
