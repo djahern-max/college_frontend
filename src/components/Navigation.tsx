@@ -50,15 +50,21 @@ const Navigation: React.FC<NavigationProps> = ({ onOpenReviewModal, onOpenAuthMo
                             Search
                         </Link>
                         {isAuthenticated && (
-                            <button
-                                onClick={handleReviewClick}
-                                className="text-gray-300 hover:text-white transition-colors flex items-center gap-1"
-                            >
-                                <Star size={16} />
-                                Review
-                            </button>
+                            <>
+                                <Link href="/profile" className="text-gray-300 hover:text-white transition-colors">
+                                    Build Profile
+                                </Link>
+                                <button
+                                    onClick={handleReviewClick}
+                                    className="text-gray-300 hover:text-white transition-colors flex items-center gap-1"
+                                >
+                                    <Star size={16} />
+                                    Review
+                                </button>
+                            </>
                         )}
                     </div>
+
 
                     {/* Desktop Auth */}
                     <div className="hidden md:flex items-center gap-4">
@@ -116,16 +122,25 @@ const Navigation: React.FC<NavigationProps> = ({ onOpenReviewModal, onOpenAuthMo
                             Search
                         </Link>
                         {isAuthenticated && (
-                            <button
-                                onClick={() => {
-                                    handleReviewClick();
-                                    setIsMenuOpen(false);
-                                }}
-                                className="block w-full text-left text-gray-300 hover:text-white flex items-center gap-2"
-                            >
-                                <Star size={16} />
-                                Leave a Review
-                            </button>
+                            <>
+                                <Link
+                                    href="/profile"
+                                    className="block text-gray-300 hover:text-white"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    Build Profile
+                                </Link>
+                                <button
+                                    onClick={() => {
+                                        handleReviewClick();
+                                        setIsMenuOpen(false);
+                                    }}
+                                    className="block w-full text-left text-gray-300 hover:text-white flex items-center gap-2"
+                                >
+                                    <Star size={16} />
+                                    Leave a Review
+                                </button>
+                            </>
                         )}
                         <hr className="border-gray-700" />
                         {isAuthenticated ? (
