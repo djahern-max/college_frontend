@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Calendar, ExternalLink } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { scholarshipAPI } from '@/lib/scholarshipAPI';
+import { useAuth } from '@/context/AuthContext';
 
 interface Scholarship {
     id: number;
@@ -21,6 +23,9 @@ const ScholarshipBanner: React.FC = () => {
     const [scholarships, setScholarships] = useState<Scholarship[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
+
+    const { isAuthenticated } = useAuth();
+    const router = useRouter();
 
     useEffect(() => {
         const fetchScholarships = async () => {
@@ -46,6 +51,23 @@ const ScholarshipBanner: React.FC = () => {
             return () => clearInterval(interval);
         }
     }, [scholarships.length]);
+
+    const handleApplyToScholarship = async (scholarship: Scholarship) => {
+        if (!isAuthenticated) {
+            router.push('/login');
+            return;
+        }
+
+        try {
+            await scholarshipAPI.recordApplication(scholarship.id);
+            if (scholarship.application_url) {
+                window.open(scholarship.application_url, '_blank');
+            }
+        } catch (error) {
+            console.error('Failed to record application:', error);
+            alert('Failed to record application. Please try again.');
+        }
+    };
 
     const formatAmount = (scholarship: Scholarship) => {
         if (scholarship.amount_exact) {
@@ -139,16 +161,14 @@ const ScholarshipBanner: React.FC = () => {
 
                     <div className="flex flex-col items-center gap-4">
                         {currentScholarship.application_url ? (
-                            <a
-                                href={currentScholarship.application_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                            <button
+                                onClick={() => handleApplyToScholarship(currentScholarship)}
                                 className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 flex items-center gap-2"
                                 title="Apply for this scholarship"
                             >
                                 <ExternalLink size={18} />
                                 Apply Now
-                            </a>
+                            </button>
                         ) : (
                             <button
                                 disabled

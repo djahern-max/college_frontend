@@ -32,6 +32,7 @@ const ScholarshipPlatform: React.FC = () => {
     });
     const [statsLoading, setStatsLoading] = useState(true);
 
+
     const router = useRouter();
 
     // Fetch platform statistics

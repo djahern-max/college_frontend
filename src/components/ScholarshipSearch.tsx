@@ -97,22 +97,17 @@ const ScholarshipSearch: React.FC = () => {
     // Handle apply to scholarship - REDIRECT TO LOGIN IF NOT AUTHENTICATED
     const handleApplyToScholarship = async (scholarship: Scholarship) => {
         if (!isAuthenticated) {
-            // Redirect to login page (frontend route, not API endpoint)
             router.push('/login');
             return;
         }
 
         try {
-            // Just record the application silently
             await scholarshipAPI.recordApplication(scholarship.id);
-
-            // Open the scholarship URL after successful recording
             if (scholarship.application_url) {
                 window.open(scholarship.application_url, '_blank');
             }
         } catch (error) {
             console.error('Failed to record application:', error);
-            // Only show error if recording fails
             alert('Failed to record application. Please try again.');
         }
     };
