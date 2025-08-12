@@ -4,6 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { User, GraduationCap, Trophy, Heart, Briefcase, Edit, Upload, FileText, Camera, CheckCircle, Calendar } from 'lucide-react';
 import { profileAPI } from '@/lib/api';
 import { getImageUrl } from '@/lib/api';
+import { useRouter } from 'next/navigation';
+
+
 
 interface ProfileViewData {
     user: {
@@ -54,6 +57,8 @@ interface ProfileViewData {
 }
 
 const ProfileView: React.FC = () => {
+
+    const router = useRouter();
     const [profileData, setProfileData] = useState<ProfileViewData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -422,7 +427,7 @@ const ProfileView: React.FC = () => {
                                 />
                             </label>
                             <button
-                                onClick={() => console.log('Edit button clicked')}
+                                onClick={() => router.push('/profile/edit')}
                                 className="flex items-center gap-2 px-4 py-2 bg-white text-blue-600 hover:bg-gray-100 rounded-lg transition-colors"
                             >
                                 <Edit size={16} />
