@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, GraduationCap, Trophy, Heart, Briefcase, Edit, Upload, FileText, Camera, CheckCircle, Calendar } from 'lucide-react';
 import { profileAPI } from '@/lib/api';
+import { getImageUrl } from '@/lib/api';
 
 interface ProfileViewData {
     user: {
@@ -56,6 +57,7 @@ const ProfileView: React.FC = () => {
     const [profileData, setProfileData] = useState<ProfileViewData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
     useEffect(() => {
         const loadProfile = async () => {
@@ -73,6 +75,58 @@ const ProfileView: React.FC = () => {
         loadProfile();
     }, []);
 
+    const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        console.log('Photo upload started');
+        const file = event.target.files?.[0];
+        if (!file) {
+            console.log('No file selected');
+            return;
+        }
+
+        console.log('File selected:', file.name, file.type, file.size);
+
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('Please select a valid image file (JPEG, PNG, or WebP)');
+            return;
+        }
+
+        // Validate file size (5MB max)
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (file.size > maxSize) {
+            alert('File is too large. Please select an image under 5MB.');
+            return;
+        }
+
+        try {
+            setIsUploadingPhoto(true);
+            console.log('Uploading photo...');
+            const result = await profileAPI.uploadProfilePhoto(file);
+            console.log('Upload result:', result);
+
+            // Update the profile data with the new photo URL
+            if (profileData) {
+                setProfileData({
+                    ...profileData,
+                    uploads: {
+                        ...profileData.uploads,
+                        profile_photo_url: result.photo_url
+                    }
+                });
+            }
+
+            alert('Photo uploaded successfully!');
+        } catch (error) {
+            console.error('Photo upload failed:', error);
+            alert(`Failed to upload photo: ${error}`);
+        } finally {
+            setIsUploadingPhoto(false);
+            // Clear the input
+            event.target.value = '';
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -88,6 +142,9 @@ const ProfileView: React.FC = () => {
             </div>
         );
     }
+
+    // Calculate imageUrl after we know profileData exists
+    const imageUrl = getImageUrl(profileData.uploads?.profile_photo_url);
 
     const sections = [
         {
@@ -324,15 +381,18 @@ const ProfileView: React.FC = () => {
                 <div className="max-w-6xl mx-auto">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-6">
-                            <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center">
-                                {profileData.uploads.profile_photo_url ? (
+                            <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center overflow-hidden">
+                                {imageUrl ? (
                                     <img
-                                        src={profileData.uploads.profile_photo_url}
-                                        alt="Profile"
-                                        className="w-full h-full rounded-full object-cover"
+                                        src={imageUrl}
+                                        alt="Profile photo"
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            console.error('Profile photo failed to load:', imageUrl);
+                                        }}
                                     />
                                 ) : (
-                                    <User size={40} />
+                                    <User size={32} className="text-white/70" />
                                 )}
                             </div>
                             <div>
@@ -350,11 +410,21 @@ const ProfileView: React.FC = () => {
                         </div>
 
                         <div className="flex gap-3">
-                            <button className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors">
+                            <label className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors cursor-pointer">
                                 <Camera size={16} />
-                                Upload Photo
-                            </button>
-                            <button className="flex items-center gap-2 px-4 py-2 bg-white text-blue-600 hover:bg-gray-100 rounded-lg transition-colors">
+                                {isUploadingPhoto ? 'Uploading...' : 'Upload Photo'}
+                                <input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    onChange={handlePhotoUpload}
+                                    disabled={isUploadingPhoto}
+                                    style={{ display: 'none' }}
+                                />
+                            </label>
+                            <button
+                                onClick={() => console.log('Edit button clicked')}
+                                className="flex items-center gap-2 px-4 py-2 bg-white text-blue-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
                                 <Edit size={16} />
                                 Edit Profile
                             </button>

@@ -1,6 +1,20 @@
 // API configuration and base URL
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
+// Helper function to get image URLs (images are served from backend root, not API path)
+export const getImageUrl = (path: string | null | undefined): string | null => {
+    if (!path) return null;
+
+    // If the path already includes the full URL, return as-is
+    if (path.startsWith('http')) {
+        return path;
+    }
+
+    // For images, use the backend root URL (without /api/v1)
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:8000';
+    return `${backendUrl}${path.startsWith('/') ? path : `/${path}`}`;
+};
+
 // API endpoints
 export const API_ENDPOINTS = {
     // Auth endpoints
@@ -439,4 +453,5 @@ export const reviewAPI = {
             user_name?: string;
         }>>(`${API_ENDPOINTS.REVIEWS}?skip=${skip}&limit=${limit}`);
     },
+
 };
