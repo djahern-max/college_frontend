@@ -6,8 +6,6 @@ import { profileAPI } from '@/lib/api';
 import { getImageUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
-
-
 interface ProfileViewData {
     user: {
         first_name: string;
@@ -57,7 +55,6 @@ interface ProfileViewData {
 }
 
 const ProfileView: React.FC = () => {
-
     const router = useRouter();
     const [profileData, setProfileData] = useState<ProfileViewData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -158,7 +155,8 @@ const ProfileView: React.FC = () => {
             icon: User,
             color: 'blue',
             data: profileData.basic_info,
-            isEmpty: !Object.values(profileData.basic_info).some(v => v)
+            isEmpty: !Object.values(profileData.basic_info).some(v => v),
+            editLink: '/profile/edit#basic'
         },
         {
             id: 'academics',
@@ -167,7 +165,8 @@ const ProfileView: React.FC = () => {
             color: 'green',
             data: profileData.academics,
             isEmpty: !profileData.academics.gpa && !profileData.academics.sat_score &&
-                profileData.academics.honors_courses.length === 0
+                profileData.academics.honors_courses.length === 0,
+            editLink: '/profile/edit#academics'
         },
         {
             id: 'athletics',
@@ -176,7 +175,8 @@ const ProfileView: React.FC = () => {
             color: 'orange',
             data: profileData.athletics,
             isEmpty: profileData.athletics.sports_played.length === 0 &&
-                profileData.athletics.athletic_awards.length === 0
+                profileData.athletics.athletic_awards.length === 0,
+            editLink: '/profile/edit#athletics'
         },
         {
             id: 'community',
@@ -185,7 +185,8 @@ const ProfileView: React.FC = () => {
             color: 'pink',
             data: profileData.community,
             isEmpty: profileData.community.volunteer_organizations.length === 0 &&
-                !profileData.community.volunteer_hours
+                !profileData.community.volunteer_hours,
+            editLink: '/profile/edit#community'
         },
         {
             id: 'activities',
@@ -194,7 +195,8 @@ const ProfileView: React.FC = () => {
             color: 'purple',
             data: profileData.activities,
             isEmpty: profileData.activities.extracurricular_activities.length === 0 &&
-                !profileData.activities.intended_major
+                !profileData.activities.intended_major,
+            editLink: '/profile/edit#activities'
         }
     ];
 
@@ -456,7 +458,10 @@ const ProfileView: React.FC = () => {
                                             </div>
                                             <h3 className="text-xl font-semibold">{section.title}</h3>
                                         </div>
-                                        <button className="text-gray-400 hover:text-white">
+                                        <button
+                                            onClick={() => router.push(section.editLink)}
+                                            className="text-gray-400 hover:text-white"
+                                        >
                                             <Edit size={16} />
                                         </button>
                                     </div>
@@ -559,7 +564,10 @@ const ProfileView: React.FC = () => {
                             <h3 className="text-xl font-semibold mb-4">Quick Actions</h3>
 
                             <div className="space-y-3">
-                                <button className="w-full flex items-center gap-3 p-3 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                                <button
+                                    onClick={() => router.push('/profile/edit')}
+                                    className="w-full flex items-center gap-3 p-3 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                                >
                                     <Edit size={16} />
                                     Edit Profile Builder
                                 </button>

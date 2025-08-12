@@ -1,11 +1,9 @@
-// src/app/profile/edit/page.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Save, ArrowLeft, Upload } from 'lucide-react';
+import { User, Save, ArrowLeft, Upload, BookOpen } from 'lucide-react';
 import { profileAPI, UserProfile } from '@/lib/api';
-
 
 
 interface EditableProfile extends Partial<UserProfile> {
@@ -20,6 +18,7 @@ const EditProfilePage: React.FC = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [isInitialSetup, setIsInitialSetup] = useState(false);
 
     useEffect(() => {
         const loadProfile = async () => {
@@ -27,16 +26,40 @@ const EditProfilePage: React.FC = () => {
                 const data = await profileAPI.getMyProfile();
                 if (data) {
                     setProfileData(data);
+                    // Check if this is initial setup (profile exists but is mostly empty)
+                    const hasBasicInfo = data.high_school_name || data.graduation_year || data.gpa;
+                    setIsInitialSetup(!hasBasicInfo);
+                } else {
+                    // No profile exists yet, definitely initial setup
+                    setIsInitialSetup(true);
                 }
             } catch (err) {
                 setError('Failed to load profile');
                 console.error('Error loading profile:', err);
+                // If profile doesn't exist, it's initial setup
+                setIsInitialSetup(true);
             } finally {
                 setIsLoading(false);
             }
         };
 
         loadProfile();
+
+        // Handle section navigation from URL hash
+        if (window.location.hash) {
+            const sectionId = window.location.hash.substring(1);
+            setTimeout(() => {
+                const element = document.getElementById(sectionId);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    // Add a subtle highlight effect
+                    element.classList.add('ring-2', 'ring-blue-500', 'ring-opacity-50');
+                    setTimeout(() => {
+                        element.classList.remove('ring-2', 'ring-blue-500', 'ring-opacity-50');
+                    }, 2000);
+                }
+            }, 100);
+        }
     }, []);
 
     const handleInputChange = (field: keyof EditableProfile, value: any) => {
@@ -44,6 +67,11 @@ const EditProfilePage: React.FC = () => {
             ...prev,
             [field]: value
         }));
+    };
+
+    const handleBackNavigation = () => {
+        // Always go back to the profile builder/interview mode
+        router.push('/profile');
     };
 
     const handleArrayInputChange = (field: keyof EditableProfile, value: string) => {
@@ -130,7 +158,9 @@ const EditProfilePage: React.FC = () => {
             console.log('Sending data to API:', cleanedData); // Debug log
 
             await profileAPI.updateProfile(cleanedData);
-            router.push('/profile');
+
+            // Navigate to profile view (not the builder)
+            router.push('/profile/view');
 
         } catch (err) {
             setError('Failed to save profile. Please try again.');
@@ -155,13 +185,12 @@ const EditProfilePage: React.FC = () => {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <button
-                                onClick={() => router.push('/profile')}
+                                onClick={handleBackNavigation}
                                 className="flex items-center gap-2 px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
                             >
                                 <ArrowLeft size={16} />
-                                Back to Profile
+                                {isInitialSetup ? 'Back to Setup' : 'Interview Mode'}
                             </button>
-                            <h1 className="text-2xl font-bold">Edit Profile</h1>
                         </div>
                         <div className="flex gap-3">
                             <button
@@ -202,7 +231,7 @@ const EditProfilePage: React.FC = () => {
                 <div className="space-y-8">
 
                     {/* Basic Information */}
-                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                    <div id="basic" className="bg-gray-800 border border-gray-700 rounded-lg p-6">
                         <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
                             <User size={20} className="text-blue-400" />
                             Basic Information
@@ -278,7 +307,7 @@ const EditProfilePage: React.FC = () => {
                     </div>
 
                     {/* Address Information */}
-                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                    <div id="address" className="bg-gray-800 border border-gray-700 rounded-lg p-6">
                         <h3 className="text-xl font-semibold mb-6">Address Information</h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -350,8 +379,11 @@ const EditProfilePage: React.FC = () => {
                     </div>
 
                     {/* Academic Information */}
-                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-                        <h3 className="text-xl font-semibold mb-6">Academic Information</h3>
+                    <div id="academics" className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                        <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                            <BookOpen size={20} className="text-green-400" />
+                            Academic Information
+                        </h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -483,7 +515,7 @@ const EditProfilePage: React.FC = () => {
                     </div>
 
                     {/* Athletic Information */}
-                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                    <div id="athletics" className="bg-gray-800 border border-gray-700 rounded-lg p-6">
                         <h3 className="text-xl font-semibold mb-6">Athletic Information</h3>
 
                         <div className="space-y-4">
@@ -516,7 +548,7 @@ const EditProfilePage: React.FC = () => {
                     </div>
 
                     {/* Activities & Future Plans */}
-                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                    <div id="activities" className="bg-gray-800 border border-gray-700 rounded-lg p-6">
                         <h3 className="text-xl font-semibold mb-6">Activities & Future Plans</h3>
 
                         <div className="space-y-4">
@@ -616,7 +648,7 @@ const EditProfilePage: React.FC = () => {
                     {/* Save Buttons */}
                     <div className="flex justify-end gap-4 pt-6">
                         <button
-                            onClick={() => router.push('/profile')}
+                            onClick={() => router.push('/profile/view')}
                             className="px-6 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors"
                         >
                             Cancel
