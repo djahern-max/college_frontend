@@ -32,6 +32,7 @@ export const API_ENDPOINTS = {
     PROFILE_BY_USER: (userId: number) => `/profiles/user/${userId}`,
     MY_PROFILE: '/profiles/me',
     PROFILE_UPDATE: '/profiles/update',
+    PROFILE_SUMMARY: '/profiles/summary',
 
     // Scholarship endpoints
     SCHOLARSHIPS: '/scholarships',
@@ -191,6 +192,18 @@ export interface UserProfile {
     updated_at?: string;
 }
 
+export interface ProfileSummary {
+    id: number;
+    user_id: number;
+    profile_completed: boolean;
+    completion_percentage: number;
+    profile_visibility: string;
+    high_school_name?: string;
+    graduation_year?: number;
+    sports_played?: string[];
+    updated_at?: string;
+}
+
 // Auth-specific API functions
 export const authAPI = {
     async login(email: string, password: string) {
@@ -270,6 +283,18 @@ export const profileAPI = {
             return await apiRequest<UserProfile>(API_ENDPOINTS.MY_PROFILE);
         } catch (error: any) {
             // If profile doesn't exist (404), return null
+            if (error.message?.includes('404') || error.message?.includes('not found')) {
+                return null;
+            }
+            throw error;
+        }
+    },
+
+    async getProfileSummary() {
+        try {
+            return await apiRequest<ProfileSummary>(API_ENDPOINTS.PROFILE_SUMMARY);
+        } catch (error: any) {
+            // If profile doesn't exist, return a default summary
             if (error.message?.includes('404') || error.message?.includes('not found')) {
                 return null;
             }
@@ -455,3 +480,6 @@ export const reviewAPI = {
     },
 
 };
+
+
+

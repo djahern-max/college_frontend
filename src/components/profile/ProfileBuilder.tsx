@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronLeft, User, GraduationCap, Trophy, Heart, Briefcase, Save, SkipForward, HelpCircle, CheckCircle, X } from 'lucide-react';
 import { profileAPI } from '@/lib/api';
 import { useRouter } from 'next/navigation';
+import { useProfile } from '@/context/ProfileContext';
 
 // Types for the profile data structure
 interface ProfileData {
@@ -48,6 +49,7 @@ const ProfileBuilder: React.FC = () => {
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
+    const { refreshProfileStatus } = useProfile();
 
     // Define the interview sections and questions based on your DB schema
     const sections: Section[] = [
@@ -628,6 +630,9 @@ const ProfileBuilder: React.FC = () => {
             // Mark profile as completed
             await profileAPI.completeProfile();
 
+            // *** ADD THIS LINE - Refresh profile status in context ***
+            await refreshProfileStatus();
+
             // Clear localStorage
             localStorage.removeItem('profileData');
 
@@ -651,7 +656,6 @@ const ProfileBuilder: React.FC = () => {
             setIsLoading(false);
         }
     };
-
     const isQuestionAnswered = (question: Question): boolean => {
         const value = profileData[question.id];
         if (value === undefined || value === null) return false;

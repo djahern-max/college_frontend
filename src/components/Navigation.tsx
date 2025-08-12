@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Search, Star, Menu, X, LogOut, User } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useProfile } from '@/context/ProfileContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -14,6 +15,7 @@ interface NavigationProps {
 const Navigation: React.FC<NavigationProps> = ({ onOpenReviewModal, onOpenAuthModal }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const { user, isAuthenticated, logout } = useAuth();
+    const { isProfileCompleted } = useProfile();
     const router = useRouter();
 
     const handleLogin = () => {
@@ -31,6 +33,10 @@ const Navigation: React.FC<NavigationProps> = ({ onOpenReviewModal, onOpenAuthMo
     const handleReviewClick = () => {
         onOpenReviewModal?.();
     };
+
+    // Determine profile link text and destination
+    const profileLinkText = isProfileCompleted ? 'View Profile' : 'Build Profile';
+    const profileLinkHref = isProfileCompleted ? '/profile/view' : '/profile';
 
     return (
         <nav className="border-b border-gray-800 bg-gray-900/95 backdrop-blur-sm sticky top-0 z-50">
@@ -51,8 +57,8 @@ const Navigation: React.FC<NavigationProps> = ({ onOpenReviewModal, onOpenAuthMo
                         </Link>
                         {isAuthenticated && (
                             <>
-                                <Link href="/profile" className="text-gray-300 hover:text-white transition-colors">
-                                    Build Profile
+                                <Link href={profileLinkHref} className="text-gray-300 hover:text-white transition-colors">
+                                    {profileLinkText}
                                 </Link>
                                 <button
                                     onClick={handleReviewClick}
@@ -65,23 +71,19 @@ const Navigation: React.FC<NavigationProps> = ({ onOpenReviewModal, onOpenAuthMo
                         )}
                     </div>
 
-
                     {/* Desktop Auth */}
                     <div className="hidden md:flex items-center gap-4">
                         {isAuthenticated ? (
-                            <div className="flex items-center gap-4">
-                                <div className="flex items-center gap-2 text-gray-300">
-                                    <User size={16} />
-                                    <span>Hi, {user?.first_name || user?.username}</span>
-                                </div>
+                            <>
+                                <div className="text-gray-300">Hi, {user?.first_name || user?.username}</div>
                                 <button
                                     onClick={handleLogout}
-                                    className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors"
+                                    className="text-gray-300 hover:text-white transition-colors flex items-center gap-1"
                                 >
                                     <LogOut size={16} />
                                     Logout
                                 </button>
-                            </div>
+                            </>
                         ) : (
                             <>
                                 <button
@@ -100,10 +102,10 @@ const Navigation: React.FC<NavigationProps> = ({ onOpenReviewModal, onOpenAuthMo
                         )}
                     </div>
 
-                    {/* Mobile Menu Button */}
+                    {/* Mobile menu button */}
                     <button
-                        className="md:hidden"
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        className="md:hidden text-gray-300 hover:text-white"
                     >
                         {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
                     </button>
@@ -124,11 +126,11 @@ const Navigation: React.FC<NavigationProps> = ({ onOpenReviewModal, onOpenAuthMo
                         {isAuthenticated && (
                             <>
                                 <Link
-                                    href="/profile"
+                                    href={profileLinkHref}
                                     className="block text-gray-300 hover:text-white"
                                     onClick={() => setIsMenuOpen(false)}
                                 >
-                                    Build Profile
+                                    {profileLinkText}
                                 </Link>
                                 <button
                                     onClick={() => {
