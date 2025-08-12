@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Mail, Lock, User, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -25,6 +26,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
     });
 
     const { login, register, isLoading, error, clearError } = useAuth();
+    const router = useRouter();
 
     // Reset form when modal opens/closes or mode changes
     React.useEffect(() => {
@@ -50,7 +52,11 @@ const AuthModal: React.FC<AuthModalProps> = ({
         try {
             if (mode === 'login') {
                 await login(formData.email, formData.password);
+                onClose();
+                // Redirect to dashboard or wherever logged-in users should go
+                router.push('/dashboard');
             } else {
+                // Register the user
                 await register({
                     email: formData.email,
                     password: formData.password,
@@ -58,10 +64,14 @@ const AuthModal: React.FC<AuthModalProps> = ({
                     first_name: formData.first_name || undefined,
                     last_name: formData.last_name || undefined,
                 });
-            }
 
-            // Success - close modal
-            onClose();
+                // Auto-login after successful registration
+                await login(formData.email, formData.password);
+                onClose();
+
+                // Redirect to profile completion for new users
+                router.push('/profile'); // or '/onboarding' if you have one
+            }
         } catch (error) {
             // Error is handled by AuthContext
             console.error('Auth error:', error);
@@ -110,7 +120,9 @@ const AuthModal: React.FC<AuthModalProps> = ({
                     <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-6 flex items-start gap-3">
                         <AlertCircle size={20} className="text-red-400 flex-shrink-0 mt-0.5" />
                         <div>
-                            <p className="text-red-400 text-sm font-medium mb-1">Registration Error</p>
+                            <p className="text-red-400 text-sm font-medium mb-1">
+                                {mode === 'login' ? 'Login Error' : 'Registration Error'}
+                            </p>
                             <p className="text-red-300 text-sm">{error}</p>
                         </div>
                     </div>
