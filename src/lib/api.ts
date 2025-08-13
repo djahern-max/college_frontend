@@ -93,7 +93,7 @@ export async function apiRequest<T>(
 
             // Enhanced error handling for auth issues
             if (response.status === 401) {
-                console.error('Authentication failed - removing invalid token');
+
                 if (typeof window !== 'undefined') {
                     localStorage.removeItem('access_token');
                 }
@@ -101,7 +101,7 @@ export async function apiRequest<T>(
             }
 
             if (response.status === 403) {
-                console.error('Forbidden - user may not have permission');
+
                 throw new Error('Not authenticated');
             }
 

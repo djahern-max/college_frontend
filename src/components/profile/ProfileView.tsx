@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { User, GraduationCap, Trophy, Heart, Briefcase, Edit, Upload, FileText, Camera, CheckCircle, Calendar } from 'lucide-react';
+import { User, GraduationCap, Trophy, Heart, Briefcase, Edit, Upload, FileText, Camera, CheckCircle, Calendar, LayoutDashboard } from 'lucide-react';
 import { profileAPI } from '@/lib/api';
 import { getImageUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 interface ProfileViewData {
     user: {
@@ -56,6 +57,7 @@ interface ProfileViewData {
 
 const ProfileView: React.FC = () => {
     const router = useRouter();
+    const { isAuthenticated } = useAuth();
     const [profileData, setProfileData] = useState<ProfileViewData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -417,6 +419,17 @@ const ProfileView: React.FC = () => {
                         </div>
 
                         <div className="flex gap-3">
+                            {/* Dashboard Link - Only visible when authenticated */}
+                            {isAuthenticated && (
+                                <button
+                                    onClick={() => router.push('/dashboard')}
+                                    className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                                >
+                                    <LayoutDashboard size={16} />
+                                    Dashboard
+                                </button>
+                            )}
+
                             <label className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors cursor-pointer">
                                 <Camera size={16} />
                                 {isUploadingPhoto ? 'Uploading...' : 'Upload Photo'}
@@ -564,6 +577,17 @@ const ProfileView: React.FC = () => {
                             <h3 className="text-xl font-semibold mb-4">Quick Actions</h3>
 
                             <div className="space-y-3">
+                                {/* Dashboard Button - Only visible when authenticated */}
+                                {isAuthenticated && (
+                                    <button
+                                        onClick={() => router.push('/dashboard')}
+                                        className="w-full flex items-center gap-3 p-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+                                    >
+                                        <LayoutDashboard size={16} />
+                                        Go to Dashboard
+                                    </button>
+                                )}
+
                                 <button
                                     onClick={() => router.push('/profile/edit')}
                                     className="w-full flex items-center gap-3 p-3 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
