@@ -87,7 +87,15 @@ export default function RegisterPage() {
                 <div className="bg-gray-800 rounded-2xl p-8 shadow-2xl">
                     {/* Header */}
                     <div className="text-center mb-8">
-                        <div className="text-4xl mb-4">🎓</div>
+                        <div
+                            className="text-2xl"
+                            style={{
+                                textShadow: '0 0 3px #60a5fa, 0 0 6px #60a5fa',
+                                filter: 'drop-shadow(0 0 2px #60a5fa)'
+                            }}
+                        >
+                            🎓
+                        </div>
                         <h1 className="text-3xl font-bold text-white mb-2">
                             Join CampusConnect
                         </h1>

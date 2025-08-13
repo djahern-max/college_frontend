@@ -103,7 +103,15 @@ const AuthModal: React.FC<AuthModalProps> = ({
 
                 {/* Header */}
                 <div className="text-center mb-8">
-                    <div className="text-3xl mb-2">🎓</div>
+                    <div
+                        className="text-2xl"
+                        style={{
+                            textShadow: '0 0 3px #60a5fa, 0 0 6px #60a5fa',
+                            filter: 'drop-shadow(0 0 2px #60a5fa)'
+                        }}
+                    >
+                        🎓
+                    </div>
                     <h2 className="text-2xl font-bold text-white mb-2">
                         {mode === 'login' ? 'Welcome Back!' : 'Join CampusConnect'}
                     </h2>
