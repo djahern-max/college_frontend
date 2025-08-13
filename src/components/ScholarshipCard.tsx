@@ -9,6 +9,7 @@ interface ScholarshipCardProps {
 
 const ScholarshipCard: React.FC<ScholarshipCardProps> = ({ scholarship, onApply }) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [showAllCategories, setShowAllCategories] = useState(false);
 
     const formatAmount = (scholarship: Scholarship) => {
         if (scholarship.amount_exact) {
@@ -73,6 +74,11 @@ const ScholarshipCard: React.FC<ScholarshipCardProps> = ({ scholarship, onApply 
     const truncatedDescription = shouldShowReadMore && !isExpanded
         ? displayDescription.substring(0, PREVIEW_LENGTH) + '...'
         : displayDescription;
+
+    // Handle categories display
+    const categories = scholarship.categories || [];
+    const visibleCategories = showAllCategories ? categories : categories.slice(0, 3);
+    const hiddenCount = categories.length - 3;
 
     return (
         <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 hover:border-blue-500 transition-colors duration-200 flex flex-col h-full">
@@ -151,11 +157,11 @@ const ScholarshipCard: React.FC<ScholarshipCardProps> = ({ scholarship, onApply 
                     </div>
                 </div>
 
-                {/* Categories */}
-                {scholarship.categories && scholarship.categories.length > 0 && (
+                {/* Categories with expandable functionality */}
+                {categories.length > 0 && (
                     <div className="mb-4">
                         <div className="flex flex-wrap gap-2">
-                            {scholarship.categories.slice(0, 3).map((category, index) => (
+                            {visibleCategories.map((category, index) => (
                                 <span
                                     key={index}
                                     className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs"
@@ -163,10 +169,23 @@ const ScholarshipCard: React.FC<ScholarshipCardProps> = ({ scholarship, onApply 
                                     {category}
                                 </span>
                             ))}
-                            {scholarship.categories.length > 3 && (
-                                <span className="px-2 py-1 bg-gray-700 text-gray-400 rounded text-xs">
-                                    +{scholarship.categories.length - 3} more
-                                </span>
+                            {hiddenCount > 0 && (
+                                <button
+                                    onClick={() => setShowAllCategories(!showAllCategories)}
+                                    className="px-2 py-1 bg-gray-600 hover:bg-gray-500 text-gray-300 rounded text-xs transition-colors duration-200 flex items-center gap-1"
+                                >
+                                    {showAllCategories ? (
+                                        <>
+                                            <span>Show Less</span>
+                                            <ChevronUp size={12} />
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>+{hiddenCount} more</span>
+                                            <ChevronDown size={12} />
+                                        </>
+                                    )}
+                                </button>
                             )}
                         </div>
                     </div>
@@ -175,7 +194,19 @@ const ScholarshipCard: React.FC<ScholarshipCardProps> = ({ scholarship, onApply 
 
             {/* Actions - This will always be at the bottom */}
             <div className="mt-auto">
-                <div className="mb-3">
+                {/* Contact info above the button with fixed height container */}
+                <div className="min-h-[20px] mb-3">
+                    {scholarship.contact_email && (
+                        <div className="pb-3 border-b border-gray-700">
+                            <p className="text-xs text-gray-500">
+                                Contact: {scholarship.contact_email}
+                            </p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Apply button in consistent position */}
+                <div>
                     {scholarship.application_url && !isDeadlinePassed(scholarship.deadline) ? (
                         <a
                             href={scholarship.application_url}
@@ -206,15 +237,6 @@ const ScholarshipCard: React.FC<ScholarshipCardProps> = ({ scholarship, onApply 
                         </button>
                     )}
                 </div>
-
-                {/* Contact info */}
-                {scholarship.contact_email && (
-                    <div className="pt-3 border-t border-gray-700">
-                        <p className="text-xs text-gray-500">
-                            Contact: {scholarship.contact_email}
-                        </p>
-                    </div>
-                )}
             </div>
         </div>
     );
