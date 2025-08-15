@@ -41,6 +41,10 @@ export const API_ENDPOINTS = {
     ACTIVE_SCHOLARSHIPS: '/scholarships/active',
     SCHOLARSHIP_STATISTICS: '/scholarships/statistics',
 
+    // Scholarship matching endpoints
+    MY_SCHOLARSHIP_MATCHES: '/scholarships/my-matches',
+    USER_SCHOLARSHIP_MATCHES: (userId: number) => `/scholarships/user-matches/${userId}`,
+
     // Platform statistics
     PLATFORM_STATISTICS: '/statistics/platform',
 
@@ -93,7 +97,6 @@ export async function apiRequest<T>(
 
             // Enhanced error handling for auth issues
             if (response.status === 401) {
-
                 if (typeof window !== 'undefined') {
                     localStorage.removeItem('access_token');
                 }
@@ -101,7 +104,6 @@ export async function apiRequest<T>(
             }
 
             if (response.status === 403) {
-
                 throw new Error('Not authenticated');
             }
 
@@ -202,6 +204,32 @@ export interface ProfileSummary {
     graduation_year?: number;
     sports_played?: string[];
     updated_at?: string;
+}
+
+// Scholarship matching types
+export interface ScholarshipMatch {
+    id: number;
+    title: string;
+    provider: string;
+    description?: string;
+    amount_min?: string;
+    amount_max?: string;
+    amount_exact?: string;
+    deadline?: string;
+    scholarship_type: string;
+    categories?: string[];
+    verified: boolean;
+    renewable: boolean;
+    application_url?: string;
+    contact_email?: string;
+    created_at: string;
+}
+
+export interface ScholarshipMatchResponse {
+    matches: ScholarshipMatch[];
+    total_matches: number;
+    average_match_score: number;
+    user_id: number;
 }
 
 // Auth-specific API functions
@@ -384,6 +412,25 @@ export const profileAPI = {
     },
 };
 
+// Scholarship matching API functions
+export const scholarshipMatchingAPI = {
+    /**
+     * Get scholarship matches for the current user
+     */
+    async getMyMatches(limit: number = 10): Promise<ScholarshipMatchResponse> {
+        const endpoint = `${API_ENDPOINTS.MY_SCHOLARSHIP_MATCHES}?limit=${limit}`;
+        return apiRequest<ScholarshipMatchResponse>(endpoint);
+    },
+
+    /**
+     * Get scholarship matches for a specific user (admin only)
+     */
+    async getUserMatches(userId: number, limit: number = 10): Promise<ScholarshipMatchResponse> {
+        const endpoint = `${API_ENDPOINTS.USER_SCHOLARSHIP_MATCHES(userId)}?limit=${limit}`;
+        return apiRequest<ScholarshipMatchResponse>(endpoint);
+    },
+};
+
 // Platform statistics API
 export const platformAPI = {
     async getStatistics() {
@@ -478,8 +525,78 @@ export const reviewAPI = {
             user_name?: string;
         }>>(`${API_ENDPOINTS.REVIEWS}?skip=${skip}&limit=${limit}`);
     },
-
 };
 
+// Scholarship helper functions
+export const formatScholarshipAmount = (
+    amountMin?: string | null,
+    amountMax?: string | null,
+    amountExact?: string | null
+): string => {
+    if (amountExact) {
+        return `$${parseFloat(amountExact).toLocaleString()}`;
+    }
 
+    if (amountMin && amountMax) {
+        const min = parseFloat(amountMin);
+        const max = parseFloat(amountMax);
+        if (min === max) {
+            return `$${min.toLocaleString()}`;
+        }
+        return `$${min.toLocaleString()} - $${max.toLocaleString()}`;
+    }
 
+    if (amountMin) {
+        return `$${parseFloat(amountMin).toLocaleString()}+`;
+    }
+
+    if (amountMax) {
+        return `Up to $${parseFloat(amountMax).toLocaleString()}`;
+    }
+
+    return 'Amount varies';
+};
+
+export const formatDeadline = (deadline?: string | null): string => {
+    if (!deadline) return 'No deadline specified';
+
+    const date = new Date(deadline);
+    const now = new Date();
+    const diffTime = date.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+        return 'Deadline passed';
+    } else if (diffDays === 0) {
+        return 'Due today';
+    } else if (diffDays === 1) {
+        return 'Due tomorrow';
+    } else if (diffDays <= 30) {
+        return `Due in ${diffDays} days`;
+    } else {
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    }
+};
+
+export const getScholarshipTypeBadgeColor = (scholarshipType: string): string => {
+    const colors: Record<string, string> = {
+        'athletic': 'bg-green-100 text-green-800 border-green-200',
+        'merit': 'bg-blue-100 text-blue-800 border-blue-200',
+        'need_based': 'bg-purple-100 text-purple-800 border-purple-200',
+        'minority': 'bg-pink-100 text-pink-800 border-pink-200',
+        'field_specific': 'bg-orange-100 text-orange-800 border-orange-200',
+        'geographic': 'bg-teal-100 text-teal-800 border-teal-200',
+        'first_generation': 'bg-indigo-100 text-indigo-800 border-indigo-200',
+        'community_service': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+        'other': 'bg-gray-100 text-gray-800 border-gray-200'
+    };
+
+    return colors[scholarshipType] || colors['other'];
+};
+
+// Re-export UserProfile type as UserProfileSummary for backwards compatibility
+export type UserProfileSummary = ProfileSummary;

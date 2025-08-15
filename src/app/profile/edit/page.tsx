@@ -2,9 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Save, ArrowLeft, Upload, BookOpen } from 'lucide-react';
+import { User, Save, ArrowLeft, BookOpen, Plus, Trash2, Briefcase, Users } from 'lucide-react';
 import { profileAPI, UserProfile } from '@/lib/api';
-
 
 interface EditableProfile extends Partial<UserProfile> {
     // This interface now extends UserProfile, so it includes all the same fields
@@ -70,7 +69,6 @@ const EditProfilePage: React.FC = () => {
     };
 
     const handleBackNavigation = () => {
-        // Always go back to the profile builder/interview mode
         router.push('/profile');
     };
 
@@ -79,6 +77,137 @@ const EditProfilePage: React.FC = () => {
         setProfileData(prev => ({
             ...prev,
             [field]: array
+        }));
+    };
+
+    // Athletic Positions helpers
+    const addAthleticPosition = () => {
+        const positions = profileData.athletic_positions || {};
+        setProfileData(prev => ({
+            ...prev,
+            athletic_positions: { ...positions, '': '' }
+        }));
+    };
+
+    const updateAthleticPosition = (oldSport: string, newSport: string, position: string) => {
+        const positions = { ...(profileData.athletic_positions || {}) };
+        if (oldSport !== newSport && oldSport in positions) {
+            delete positions[oldSport];
+        }
+        if (newSport.trim() && position.trim()) {
+            positions[newSport.trim()] = position.trim();
+        }
+        setProfileData(prev => ({
+            ...prev,
+            athletic_positions: positions
+        }));
+    };
+
+    const removeAthleticPosition = (sport: string) => {
+        const positions = { ...(profileData.athletic_positions || {}) };
+        delete positions[sport];
+        setProfileData(prev => ({
+            ...prev,
+            athletic_positions: positions
+        }));
+    };
+
+    // Years Participated helpers
+    const addYearsParticipated = () => {
+        const years = profileData.years_participated || {};
+        setProfileData(prev => ({
+            ...prev,
+            years_participated: { ...years, '': 1 }
+        }));
+    };
+
+    const updateYearsParticipated = (oldSport: string, newSport: string, years: number) => {
+        const yearsData = { ...(profileData.years_participated || {}) };
+        if (oldSport !== newSport && oldSport in yearsData) {
+            delete yearsData[oldSport];
+        }
+        if (newSport.trim() && years > 0) {
+            yearsData[newSport.trim()] = years;
+        }
+        setProfileData(prev => ({
+            ...prev,
+            years_participated: yearsData
+        }));
+    };
+
+    const removeYearsParticipated = (sport: string) => {
+        const years = { ...(profileData.years_participated || {}) };
+        delete years[sport];
+        setProfileData(prev => ({
+            ...prev,
+            years_participated: years
+        }));
+    };
+
+    // Work Experience helpers
+    const addWorkExperience = () => {
+        const work = profileData.work_experience || [];
+        setProfileData(prev => ({
+            ...prev,
+            work_experience: [...work, {
+                company: '',
+                position: '',
+                start_date: '',
+                end_date: '',
+                description: ''
+            }]
+        }));
+    };
+
+    const updateWorkExperience = (index: number, field: string, value: string) => {
+        const work = [...(profileData.work_experience || [])];
+        work[index] = { ...work[index], [field]: value };
+        setProfileData(prev => ({
+            ...prev,
+            work_experience: work
+        }));
+    };
+
+    const removeWorkExperience = (index: number) => {
+        const work = [...(profileData.work_experience || [])];
+        work.splice(index, 1);
+        setProfileData(prev => ({
+            ...prev,
+            work_experience: work
+        }));
+    };
+
+    // References helpers
+    const addReference = () => {
+        const refs = profileData.references || [];
+        setProfileData(prev => ({
+            ...prev,
+            references: [...refs, {
+                name: '',
+                title: '',
+                organization: '',
+                email: '',
+                phone: '',
+                relationship: ''
+            }]
+        }));
+    };
+
+    const updateReference = (index: number, field: string, value: string) => {
+        const refs = [...(profileData.references || [])];
+        refs[index] = { ...refs[index], [field]: value };
+        setProfileData(prev => ({
+            ...prev,
+            references: refs
+        }));
+    };
+
+    const removeReference = (index: number) => {
+        const refs = [...(profileData.references || [])];
+        refs.splice(index, 1);
+        setProfileData(prev => ({
+            ...prev,
+            references: refs
         }));
     };
 
@@ -100,12 +229,17 @@ const EditProfilePage: React.FC = () => {
             delete cleanedData[field as keyof EditableProfile];
         });
 
-        // Remove empty arrays and convert to undefined if empty
+        // Clean up empty objects and arrays
         Object.keys(cleanedData).forEach(key => {
             const value = cleanedData[key as keyof EditableProfile];
 
             // Handle arrays - remove if empty
             if (Array.isArray(value) && value.length === 0) {
+                delete cleanedData[key as keyof EditableProfile];
+            }
+
+            // Handle objects - remove if empty
+            if (value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0) {
                 delete cleanedData[key as keyof EditableProfile];
             }
 
@@ -133,7 +267,7 @@ const EditProfilePage: React.FC = () => {
             setError(null);
 
             const cleanedData = prepareDataForAPI(profileData);
-            console.log('Sending data to API:', cleanedData); // Debug log
+            console.log('Sending data to API:', cleanedData);
 
             await profileAPI.updateProfile(cleanedData);
             setSuccessMessage('Profile updated successfully!');
@@ -155,7 +289,7 @@ const EditProfilePage: React.FC = () => {
             setError(null);
 
             const cleanedData = prepareDataForAPI(profileData);
-            console.log('Sending data to API:', cleanedData); // Debug log
+            console.log('Sending data to API:', cleanedData);
 
             await profileAPI.updateProfile(cleanedData);
 
@@ -514,11 +648,12 @@ const EditProfilePage: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Athletic Information */}
+                    {/* Athletic Information - REDESIGNED */}
                     <div id="athletics" className="bg-gray-800 border border-gray-700 rounded-lg p-6">
                         <h3 className="text-xl font-semibold mb-6">Athletic Information</h3>
 
-                        <div className="space-y-4">
+                        <div className="space-y-6">
+                            {/* Basic Sports */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-2">
                                     Sports Played (comma separated)
@@ -528,10 +663,11 @@ const EditProfilePage: React.FC = () => {
                                     value={profileData.sports_played?.join(', ') || ''}
                                     onChange={(e) => handleArrayInputChange('sports_played', e.target.value)}
                                     className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="e.g., Basketball, Soccer, Track"
+                                    placeholder="e.g., Volleyball, Basketball, Track"
                                 />
                             </div>
 
+                            {/* Athletic Awards */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-2">
                                     Athletic Awards (comma separated)
@@ -544,6 +680,125 @@ const EditProfilePage: React.FC = () => {
                                     placeholder="e.g., MVP, All-State, Team Captain"
                                 />
                             </div>
+
+                            {/* Team Captain Roles */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">
+                                    Team Captain Roles (comma separated)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={profileData.team_captain?.join(', ') || ''}
+                                    onChange={(e) => handleArrayInputChange('team_captain', e.target.value)}
+                                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="e.g., Volleyball Senior Year, Track Captain 2024"
+                                />
+                            </div>
+
+                            {/* Advanced Athletic Details - Structured Forms */}
+                            <details className="bg-gray-700/50 rounded-lg">
+                                <summary className="cursor-pointer p-4 text-sm font-medium text-gray-300 hover:text-white">
+                                    ⬇️ Advanced Athletic Details (Optional)
+                                </summary>
+                                <div className="p-4 space-y-6 border-t border-gray-600">
+
+                                    {/* Athletic Positions */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <label className="text-sm font-medium text-gray-300">
+                                                Athletic Positions
+                                            </label>
+                                            <button
+                                                type="button"
+                                                onClick={addAthleticPosition}
+                                                className="flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs"
+                                            >
+                                                <Plus size={12} />
+                                                Add Position
+                                            </button>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {Object.entries(profileData.athletic_positions || {}).map(([sport, position], index) => (
+                                                <div key={index} className="flex gap-2">
+                                                    <input
+                                                        type="text"
+                                                        value={sport}
+                                                        onChange={(e) => updateAthleticPosition(sport, e.target.value, position)}
+                                                        placeholder="Sport"
+                                                        className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={position}
+                                                        onChange={(e) => updateAthleticPosition(sport, sport, e.target.value)}
+                                                        placeholder="Position"
+                                                        className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeAthleticPosition(sport)}
+                                                        className="px-2 py-2 bg-red-600 hover:bg-red-700 rounded text-xs"
+                                                    >
+                                                        <Trash2 size={12} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            {Object.keys(profileData.athletic_positions || {}).length === 0 && (
+                                                <p className="text-sm text-gray-400 italic">No athletic positions added yet.</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Years Participated */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <label className="text-sm font-medium text-gray-300">
+                                                Years Participated
+                                            </label>
+                                            <button
+                                                type="button"
+                                                onClick={addYearsParticipated}
+                                                className="flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs"
+                                            >
+                                                <Plus size={12} />
+                                                Add Years
+                                            </button>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {Object.entries(profileData.years_participated || {}).map(([sport, years], index) => (
+                                                <div key={index} className="flex gap-2">
+                                                    <input
+                                                        type="text"
+                                                        value={sport}
+                                                        onChange={(e) => updateYearsParticipated(sport, e.target.value, Number(years))}
+                                                        placeholder="Sport"
+                                                        className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                    />
+                                                    <input
+                                                        type="number"
+                                                        value={years}
+                                                        onChange={(e) => updateYearsParticipated(sport, sport, parseInt(e.target.value) || 0)}
+                                                        placeholder="Years"
+                                                        min="1"
+                                                        max="10"
+                                                        className="w-20 px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeYearsParticipated(sport)}
+                                                        className="px-2 py-2 bg-red-600 hover:bg-red-700 rounded text-xs"
+                                                    >
+                                                        <Trash2 size={12} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            {Object.keys(profileData.years_participated || {}).length === 0 && (
+                                                <p className="text-sm text-gray-400 italic">No years participated added yet.</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </details>
                         </div>
                     </div>
 
@@ -642,6 +897,200 @@ const EditProfilePage: React.FC = () => {
                                     placeholder="Describe your career goals and aspirations"
                                 />
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Work Experience - REDESIGNED */}
+                    <div id="work" className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                        <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                            <Briefcase size={20} className="text-indigo-400" />
+                            Work Experience
+                        </h3>
+
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <p className="text-sm text-gray-400">Add your work experience and jobs</p>
+                                <button
+                                    type="button"
+                                    onClick={addWorkExperience}
+                                    className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm"
+                                >
+                                    <Plus size={16} />
+                                    Add Work Experience
+                                </button>
+                            </div>
+
+                            {(profileData.work_experience || []).map((work, index) => (
+                                <div key={index} className="p-4 bg-gray-700/50 rounded-lg border border-gray-600">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h4 className="text-sm font-medium text-gray-300">Work Experience #{index + 1}</h4>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeWorkExperience(index)}
+                                            className="text-red-400 hover:text-red-300"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-xs text-gray-400 mb-1">Company</label>
+                                            <input
+                                                type="text"
+                                                value={work.company || ''}
+                                                onChange={(e) => updateWorkExperience(index, 'company', e.target.value)}
+                                                placeholder="Company name"
+                                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-400 mb-1">Position</label>
+                                            <input
+                                                type="text"
+                                                value={work.position || ''}
+                                                onChange={(e) => updateWorkExperience(index, 'position', e.target.value)}
+                                                placeholder="Job title"
+                                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-400 mb-1">Start Date</label>
+                                            <input
+                                                type="month"
+                                                value={work.start_date || ''}
+                                                onChange={(e) => updateWorkExperience(index, 'start_date', e.target.value)}
+                                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-400 mb-1">End Date</label>
+                                            <input
+                                                type="month"
+                                                value={work.end_date || ''}
+                                                onChange={(e) => updateWorkExperience(index, 'end_date', e.target.value)}
+                                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                            />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="block text-xs text-gray-400 mb-1">Description</label>
+                                            <textarea
+                                                value={work.description || ''}
+                                                onChange={(e) => updateWorkExperience(index, 'description', e.target.value)}
+                                                placeholder="Describe your responsibilities and achievements"
+                                                rows={2}
+                                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+
+                            {(profileData.work_experience || []).length === 0 && (
+                                <p className="text-gray-400 italic text-center py-8">No work experience added yet. Click "Add Work Experience" to get started.</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* References - REDESIGNED */}
+                    <div id="references" className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                        <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                            <Users size={20} className="text-purple-400" />
+                            References
+                        </h3>
+
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <p className="text-sm text-gray-400">Add teachers, coaches, or mentors who can recommend you</p>
+                                <button
+                                    type="button"
+                                    onClick={addReference}
+                                    className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm"
+                                >
+                                    <Plus size={16} />
+                                    Add Reference
+                                </button>
+                            </div>
+
+                            {(profileData.references || []).map((ref, index) => (
+                                <div key={index} className="p-4 bg-gray-700/50 rounded-lg border border-gray-600">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h4 className="text-sm font-medium text-gray-300">Reference #{index + 1}</h4>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeReference(index)}
+                                            className="text-red-400 hover:text-red-300"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-xs text-gray-400 mb-1">Name</label>
+                                            <input
+                                                type="text"
+                                                value={ref.name || ''}
+                                                onChange={(e) => updateReference(index, 'name', e.target.value)}
+                                                placeholder="Full name"
+                                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-400 mb-1">Title</label>
+                                            <input
+                                                type="text"
+                                                value={ref.title || ''}
+                                                onChange={(e) => updateReference(index, 'title', e.target.value)}
+                                                placeholder="Job title"
+                                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-400 mb-1">Organization</label>
+                                            <input
+                                                type="text"
+                                                value={ref.organization || ''}
+                                                onChange={(e) => updateReference(index, 'organization', e.target.value)}
+                                                placeholder="School or organization"
+                                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-400 mb-1">Email</label>
+                                            <input
+                                                type="email"
+                                                value={ref.email || ''}
+                                                onChange={(e) => updateReference(index, 'email', e.target.value)}
+                                                placeholder="Email address"
+                                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-400 mb-1">Phone</label>
+                                            <input
+                                                type="tel"
+                                                value={ref.phone || ''}
+                                                onChange={(e) => updateReference(index, 'phone', e.target.value)}
+                                                placeholder="Phone number"
+                                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-400 mb-1">Relationship</label>
+                                            <input
+                                                type="text"
+                                                value={ref.relationship || ''}
+                                                onChange={(e) => updateReference(index, 'relationship', e.target.value)}
+                                                placeholder="e.g., Math teacher for 2 years"
+                                                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+
+                            {(profileData.references || []).length === 0 && (
+                                <p className="text-gray-400 italic text-center py-8">No references added yet. Click "Add Reference" to get started.</p>
+                            )}
                         </div>
                     </div>
 

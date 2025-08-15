@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { profileAPI, getImageUrl } from '@/lib/api';
+import { profileAPI, getImageUrl, scholarshipMatchingAPI } from '@/lib/api';
 import { useRouter } from 'next/navigation';
+import ScholarshipMatches from '@/components/ScholarshipMatches';
 import {
     User,
     Award,
@@ -44,6 +45,8 @@ export default function DashboardPage() {
     const [profileSummary, setProfileSummary] = useState<ProfileSummary | null>(null);
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [profileLoading, setProfileLoading] = useState(true);
+    const [matchesCount, setMatchesCount] = useState(0);
+    const [potentialAwards, setPotentialAwards] = useState(0);
     const router = useRouter();
 
     // Redirect if not authenticated
@@ -68,6 +71,29 @@ export default function DashboardPage() {
 
                 setProfileSummary(summary);
                 setUserProfile(profile);
+
+                // Load scholarship matches to get count and potential awards
+                if (summary?.profile_completed) {
+                    try {
+                        const matchesResponse = await scholarshipMatchingAPI.getMyMatches(50);
+                        setMatchesCount(matchesResponse.total_matches);
+
+                        // Calculate potential awards from matches
+                        const totalPotential = matchesResponse.matches.reduce((sum, scholarship) => {
+                            const amount = scholarship.amount_exact
+                                ? parseFloat(scholarship.amount_exact)
+                                : scholarship.amount_max
+                                    ? parseFloat(scholarship.amount_max)
+                                    : scholarship.amount_min
+                                        ? parseFloat(scholarship.amount_min)
+                                        : 0;
+                            return sum + amount;
+                        }, 0);
+                        setPotentialAwards(totalPotential);
+                    } catch (error) {
+                        console.error('Failed to load scholarship matches:', error);
+                    }
+                }
             } catch (error) {
                 console.error('Failed to load profile data:', error);
             } finally {
@@ -205,7 +231,7 @@ export default function DashboardPage() {
                                 <div className="flex items-center">
                                     <Target className="h-8 w-8 text-green-400 mr-3" />
                                     <div>
-                                        <p className="text-2xl font-bold text-white">0</p>
+                                        <p className="text-2xl font-bold text-white">{matchesCount}</p>
                                         <p className="text-gray-400 text-sm">Matches Found</p>
                                     </div>
                                 </div>
@@ -215,7 +241,9 @@ export default function DashboardPage() {
                                 <div className="flex items-center">
                                     <TrendingUp className="h-8 w-8 text-blue-400 mr-3" />
                                     <div>
-                                        <p className="text-2xl font-bold text-white">$0</p>
+                                        <p className="text-2xl font-bold text-white">
+                                            ${potentialAwards.toLocaleString()}
+                                        </p>
                                         <p className="text-gray-400 text-sm">Potential Awards</p>
                                     </div>
                                 </div>
@@ -245,28 +273,36 @@ export default function DashboardPage() {
                             </div>
                         </div>
 
-                        {/* Scholarship Opportunities Preview */}
-                        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-xl font-semibold text-white">Scholarship Opportunities</h2>
-                                <button
-                                    onClick={() => router.push('/search')}
-                                    className="text-blue-400 hover:text-blue-300 flex items-center gap-1 text-sm"
-                                >
-                                    View All <ArrowRight className="h-4 w-4" />
-                                </button>
+                        {/* Scholarship Matches - Replace the static section with dynamic component */}
+                        {isProfileComplete && matchesCount > 0 ? (
+                            <ScholarshipMatches
+                                maxMatches={5}
+                                showHeader={true}
+                                showViewAllButton={true}
+                            />
+                        ) : (
+                            <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-xl font-semibold text-white">Scholarship Opportunities</h2>
+                                    <button
+                                        onClick={() => router.push('/search')}
+                                        className="text-blue-400 hover:text-blue-300 flex items-center gap-1 text-sm"
+                                    >
+                                        View All <ArrowRight className="h-4 w-4" />
+                                    </button>
+                                </div>
+                                <div className="text-center py-8 text-gray-400">
+                                    <Search className="h-12 w-12 mx-auto mb-4 text-gray-600" />
+                                    <p>Complete your profile to see personalized scholarship matches!</p>
+                                    <button
+                                        onClick={() => router.push('/search')}
+                                        className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm transition-colors"
+                                    >
+                                        Browse Scholarships
+                                    </button>
+                                </div>
                             </div>
-                            <div className="text-center py-8 text-gray-400">
-                                <Search className="h-12 w-12 mx-auto mb-4 text-gray-600" />
-                                <p>Complete your profile to see personalized scholarship matches!</p>
-                                <button
-                                    onClick={() => router.push('/search')}
-                                    className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm transition-colors"
-                                >
-                                    Browse Scholarships
-                                </button>
-                            </div>
-                        </div>
+                        )}
                     </div>
 
                     {/* Sidebar */}
@@ -334,6 +370,16 @@ export default function DashboardPage() {
                                                     ))}
                                                 </div>
                                             </div>
+                                        </div>
+                                    )}
+
+                                    {/* Show match info if available */}
+                                    {matchesCount > 0 && (
+                                        <div className="flex items-center space-x-2 mt-4 pt-3 border-t border-gray-700">
+                                            <Target className="h-4 w-4 text-green-400" />
+                                            <span className="text-green-300">
+                                                {matchesCount} scholarship matches found!
+                                            </span>
                                         </div>
                                     )}
                                 </div>
@@ -413,8 +459,10 @@ export default function DashboardPage() {
                                     </div>
                                 )}
                                 <div className="flex items-center space-x-3">
-                                    <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
-                                    <span className="text-gray-400 text-sm">Search for scholarships</span>
+                                    <div className={`w-2 h-2 rounded-full ${matchesCount > 0 ? 'bg-green-400' : 'bg-gray-500'}`}></div>
+                                    <span className={`text-sm ${matchesCount > 0 ? 'text-green-300' : 'text-gray-400'}`}>
+                                        {matchesCount > 0 ? `Found ${matchesCount} scholarship matches` : 'Search for scholarships'}
+                                    </span>
                                 </div>
                                 <div className="flex items-center space-x-3">
                                     <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
