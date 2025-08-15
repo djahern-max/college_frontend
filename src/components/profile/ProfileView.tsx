@@ -6,6 +6,7 @@ import { profileAPI } from '@/lib/api';
 import { getImageUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import DocumentsEssaysSection from './DocumentsEssaysSection';
 
 interface ProfileViewData {
     user: {
@@ -487,174 +488,137 @@ const ProfileView: React.FC = () => {
 
                     {/* Sidebar */}
                     <div className="space-y-6">
-                        {/* Upload Documents */}
-                        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-                            <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                                <FileText size={20} />
-                                Documents & Essays
-                            </h3>
-
-                            <div className="space-y-3">
-                                <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
-                                    <span className="text-sm">Personal Statement</span>
-                                    {profileData.uploads.personal_statement ? (
-                                        <CheckCircle size={16} className="text-green-400" />
-                                    ) : (
-                                        <button className="text-blue-400 hover:text-blue-300">
-                                            <Upload size={16} />
-                                        </button>
-                                    )}
-                                </div>
-
-                                <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
-                                    <span className="text-sm">Career Essay</span>
-                                    {profileData.uploads.career_essay ? (
-                                        <CheckCircle size={16} className="text-green-400" />
-                                    ) : (
-                                        <button className="text-blue-400 hover:text-blue-300">
-                                            <Upload size={16} />
-                                        </button>
-                                    )}
-                                </div>
-
-                                <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
-                                    <span className="text-sm">Athletic Impact Essay</span>
-                                    {profileData.uploads.athletic_impact_essay ? (
-                                        <CheckCircle size={16} className="text-green-400" />
-                                    ) : (
-                                        <button className="text-blue-400 hover:text-blue-300">
-                                            <Upload size={16} />
-                                        </button>
-                                    )}
-                                </div>
-
-                                <div className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
-                                    <span className="text-sm">Resume</span>
-                                    <button className="text-blue-400 hover:text-blue-300">
-                                        <Upload size={16} />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                        {/* Documents & Essays Section */}
+                        <DocumentsEssaysSection
+                            uploads={profileData.uploads}
+                            onUploadSuccess={async () => {
+                                try {
+                                    const data = await profileAPI.getProfileView();
+                                    setProfileData(data);
+                                } catch (err) {
+                                    console.error('Error refreshing profile:', err);
+                                }
+                            }}
+                            disabled={isLoading}
+                        />
 
                         {/* Profile Stats */}
                         <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
                             <h3 className="text-xl font-semibold mb-4">Profile Statistics</h3>
-
                             <div className="space-y-4">
                                 <div>
-                                    <div className="flex justify-between text-sm mb-2">
-                                        <span>Completion</span>
-                                        <span>{profileData.completion.completion_percentage}%</span>
-                                    </div>
-                                    <div className="w-full bg-gray-700 rounded-full h-2">
-                                        <div
-                                            className="bg-blue-500 h-2 rounded-full transition-all duration-500"
-                                            style={{ width: `${profileData.completion.completion_percentage}%` }}
-                                        />
-                                    </div>
+                                    <span>Completion</span>
+                                    <span>{profileData.completion.completion_percentage}%</span>
                                 </div>
-
-                                <div className="grid grid-cols-2 gap-4 pt-4">
-                                    <div className="text-center">
-                                        <div className="text-2xl font-bold text-blue-400">
-                                            {sections.filter(s => !s.isEmpty).length}
-                                        </div>
-                                        <div className="text-xs text-gray-400">Sections Complete</div>
-                                    </div>
-                                    <div className="text-center">
-                                        <div className="text-2xl font-bold text-green-400">
-                                            {Object.values(profileData.uploads).filter(Boolean).length}
-                                        </div>
-                                        <div className="text-xs text-gray-400">Documents Uploaded</div>
-                                    </div>
+                                <div className="w-full bg-gray-700 rounded-full h-2">
+                                    <div
+                                        className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                                        style={{ width: `${profileData.completion.completion_percentage}%` }}
+                                    />
                                 </div>
                             </div>
                         </div>
 
-                        {/* Quick Actions */}
-                        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-                            <h3 className="text-xl font-semibold mb-4">Quick Actions</h3>
-
-                            <div className="space-y-3">
-                                {/* Dashboard Button - Only visible when authenticated */}
-                                {isAuthenticated && (
-                                    <button
-                                        onClick={() => router.push('/dashboard')}
-                                        className="w-full flex items-center gap-3 p-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
-                                    >
-                                        <LayoutDashboard size={16} />
-                                        Go to Dashboard
-                                    </button>
-                                )}
-
-                                <button
-                                    onClick={() => router.push('/profile/edit')}
-                                    className="w-full flex items-center gap-3 p-3 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                                >
-                                    <Edit size={16} />
-                                    Edit Profile Builder
-                                </button>
-
-                                <button className="w-full flex items-center gap-3 p-3 bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
-                                    <FileText size={16} />
-                                    View Scholarship Matches
-                                </button>
-
-                                <button className="w-full flex items-center gap-3 p-3 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors">
-                                    <Upload size={16} />
-                                    Export Profile PDF
-                                </button>
+                        <div className="grid grid-cols-2 gap-4 pt-4">
+                            <div className="text-center">
+                                <div className="text-2xl font-bold text-blue-400">
+                                    {sections.filter(s => !s.isEmpty).length}
+                                </div>
+                                <div className="text-xs text-gray-400">Sections Complete</div>
                             </div>
-                        </div>
-
-                        {/* Profile Timeline */}
-                        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-                            <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                                <Calendar size={20} />
-                                Timeline
-                            </h3>
-
-                            <div className="space-y-3 text-sm">
-                                {profileData.completion.created_at && (
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                        <div>
-                                            <div>Profile created</div>
-                                            <div className="text-gray-400">
-                                                {new Date(profileData.completion.created_at).toLocaleDateString()}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {profileData.completion.updated_at && (
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                        <div>
-                                            <div>Last updated</div>
-                                            <div className="text-gray-400">
-                                                {new Date(profileData.completion.updated_at).toLocaleDateString()}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {profileData.completion.profile_completed && (
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                                        <div>
-                                            <div>Profile completed</div>
-                                            <div className="text-gray-400">Ready for applications</div>
-                                        </div>
-                                    </div>
-                                )}
+                            <div className="text-center">
+                                <div className="text-2xl font-bold text-green-400">
+                                    {Object.values(profileData.uploads).filter(Boolean).length}
+                                </div>
+                                <div className="text-xs text-gray-400">Documents Uploaded</div>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                {/* Quick Actions */}
+                <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                    <h3 className="text-xl font-semibold mb-4">Quick Actions</h3>
+
+                    <div className="space-y-3">
+                        {/* Dashboard Button - Only visible when authenticated */}
+                        {isAuthenticated && (
+                            <button
+                                onClick={() => router.push('/dashboard')}
+                                className="w-full flex items-center gap-3 p-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+                            >
+                                <LayoutDashboard size={16} />
+                                Go to Dashboard
+                            </button>
+                        )}
+
+                        <button
+                            onClick={() => router.push('/profile/edit')}
+                            className="w-full flex items-center gap-3 p-3 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                        >
+                            <Edit size={16} />
+                            Edit Profile Builder
+                        </button>
+
+                        <button className="w-full flex items-center gap-3 p-3 bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+                            <FileText size={16} />
+                            View Scholarship Matches
+                        </button>
+
+                        <button className="w-full flex items-center gap-3 p-3 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors">
+                            <Upload size={16} />
+                            Export Profile PDF
+                        </button>
+                    </div>
+                </div>
+
+                {/* Profile Timeline */}
+                <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+                    <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                        <Calendar size={20} />
+                        Timeline
+                    </h3>
+
+                    <div className="space-y-3 text-sm">
+                        {profileData.completion.created_at && (
+                            <div className="flex items-center gap-3">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                <div>
+                                    <div>Profile created</div>
+                                    <div className="text-gray-400">
+                                        {new Date(profileData.completion.created_at).toLocaleDateString()}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {profileData.completion.updated_at && (
+                            <div className="flex items-center gap-3">
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <div>
+                                    <div>Last updated</div>
+                                    <div className="text-gray-400">
+                                        {new Date(profileData.completion.updated_at).toLocaleDateString()}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {profileData.completion.profile_completed && (
+                            <div className="flex items-center gap-3">
+                                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                                <div>
+                                    <div>Profile completed</div>
+                                    <div className="text-gray-400">Ready for applications</div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
         </div>
+
+
     );
 };
 
