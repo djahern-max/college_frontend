@@ -5,6 +5,7 @@ import { Mail, Lock, User, AlertCircle, Loader2, ArrowLeft, CheckCircle, Eye, Ey
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { oauthAPI } from '@/lib/api';
 
 export default function RegisterPage() {
     const [formData, setFormData] = useState({
@@ -53,10 +54,42 @@ export default function RegisterPage() {
     }, [formData.password, formData.confirmPassword]);
 
     const handleOAuthLogin = async (provider: 'google' | 'linkedin' | 'tiktok') => {
-        // TODO: Implement OAuth handlers
-        console.log(`OAuth login with ${provider}`);
-        // This is where you'd integrate with your OAuth service
-        // Example: window.location.href = `/auth/oauth/${provider}`;
+        try {
+            console.log(`Starting OAuth flow for ${provider}`);
+
+            let authResponse;
+
+            switch (provider) {
+                case 'google':
+                    authResponse = await oauthAPI.getGoogleAuthUrl();
+                    break;
+                case 'linkedin':
+                    authResponse = await oauthAPI.getLinkedInAuthUrl();
+                    break;
+                case 'tiktok':
+                    authResponse = await oauthAPI.getTikTokAuthUrl();
+                    break;
+                default:
+                    throw new Error('Invalid OAuth provider');
+            }
+
+            console.log(`Redirecting to ${provider} OAuth:`, authResponse.url);
+
+            // Redirect to OAuth provider
+            window.location.href = authResponse.url;
+
+        } catch (error) {
+            console.error(`${provider} OAuth error:`, error);
+
+            // Show user-friendly error message
+            if (error instanceof Error) {
+                if (error.message.includes('not configured')) {
+                    alert(`${provider.charAt(0).toUpperCase() + provider.slice(1)} OAuth is not configured yet. Please try email registration or contact support.`);
+                } else {
+                    alert(`Failed to connect with ${provider}. Please try again or use email registration.`);
+                }
+            }
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -347,10 +380,10 @@ export default function RegisterPage() {
                                             onChange={handleInputChange}
                                             required
                                             className={`w-full pl-9 pr-10 py-2.5 bg-gray-700 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-colors text-sm ${passwordValidation.showError
-                                                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
-                                                    : formData.confirmPassword && passwordValidation.match
-                                                        ? 'border-green-500 focus:border-green-500 focus:ring-green-500/20'
-                                                        : 'border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
+                                                ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                                                : formData.confirmPassword && passwordValidation.match
+                                                    ? 'border-green-500 focus:border-green-500 focus:ring-green-500/20'
+                                                    : 'border-gray-600 focus:border-blue-500 focus:ring-blue-500/20'
                                                 }`}
                                             placeholder="Confirm your password"
                                         />

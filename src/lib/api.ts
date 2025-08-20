@@ -15,7 +15,7 @@ export const getImageUrl = (path: string | null | undefined): string | null => {
     return `${backendUrl}${path.startsWith('/') ? path : `/${path}`}`;
 };
 
-// API endpoints
+// API endpoints - Updated for FastAPI backend
 export const API_ENDPOINTS = {
     // Auth endpoints
     LOGIN: '/auth/login',
@@ -26,6 +26,7 @@ export const API_ENDPOINTS = {
     // User endpoints
     USERS: '/users',
     USER_BY_ID: (id: number) => `/users/${id}`,
+    USER_ME: '/users/me',
 
     // Profile endpoints
     PROFILES: '/profiles',
@@ -33,22 +34,24 @@ export const API_ENDPOINTS = {
     MY_PROFILE: '/profiles/me',
     PROFILE_UPDATE: '/profiles/update',
     PROFILE_SUMMARY: '/profiles/summary',
+    PROFILE_COMPLETE: '/profiles/complete',
+    PROFILE_VIEW: '/profiles/view',
 
-    // Scholarship endpoints
+    // OAuth endpoints
+    OAUTH_GOOGLE_URL: '/oauth/google/url',
+    OAUTH_LINKEDIN_URL: '/oauth/linkedin/url',
+    OAUTH_TIKTOK_URL: '/oauth/tiktok/url',
+    OAUTH_ACCOUNTS: '/oauth/accounts',
+
+    // Future endpoints (not implemented yet)
     SCHOLARSHIPS: '/scholarships',
     SCHOLARSHIP_SEARCH: '/scholarships/search',
     SCHOLARSHIP_BY_ID: (id: number) => `/scholarships/${id}`,
     ACTIVE_SCHOLARSHIPS: '/scholarships/active',
     SCHOLARSHIP_STATISTICS: '/scholarships/statistics',
-
-    // Scholarship matching endpoints
     MY_SCHOLARSHIP_MATCHES: '/scholarships/my-matches',
     USER_SCHOLARSHIP_MATCHES: (userId: number) => `/scholarships/user-matches/${userId}`,
-
-    // Platform statistics
     PLATFORM_STATISTICS: '/statistics/platform',
-
-    // Review endpoints
     REVIEWS: '/reviews',
     MY_REVIEW: '/reviews/my',
     REVIEW_STATISTICS: '/reviews/statistics',
@@ -122,91 +125,82 @@ export async function apiRequest<T>(
     }
 }
 
-// Profile API types
+// Profile API types - Updated for FastAPI backend
 export interface UserProfile {
-    id: number;
-    user_id: number;
-    profile_visibility: string;
-    allow_scholarship_matching: boolean;
+    id?: number;
+    user_id?: number;
 
-    // Personal Information
-    middle_name?: string;
-    phone?: string;
+    // Basic Information
     date_of_birth?: string;
-    profile_photo_url?: string;
-
-    // Address Information
-    street_address?: string;
-    city?: string;
-    state?: string;
-    zip_code?: string;
-    country?: string;
-
-    // Academic Information
+    phone_number?: string;
     high_school_name?: string;
     graduation_year?: number;
     gpa?: number;
-    class_rank?: number;
-    class_size?: number;
+
+    // Test Scores
     sat_score?: number;
     act_score?: number;
 
-    // Athletic Information
-    sports_played?: string[];
-    athletic_positions?: { [key: string]: string };
-    years_participated?: { [key: string]: number };
-    team_captain?: string[];
-    athletic_awards?: string[];
+    // Academic Interests
+    intended_major?: string;
+    academic_interests?: string[];
+    career_goals?: string[];
 
-    // Community Service & Activities
-    volunteer_hours?: number;
-    volunteer_organizations?: string[];
-    leadership_positions?: string[];
+    // Activities & Experience
     extracurricular_activities?: string[];
+    volunteer_experience?: string[];
+    volunteer_hours?: number;
     work_experience?: any[];
 
-    // Academic Achievements
-    honors_courses?: string[];
-    academic_awards?: string[];
+    // Background & Demographics
+    ethnicity?: string[];
+    first_generation_college?: boolean;
+    household_income_range?: string;
+
+    // Location
+    state?: string;
+    city?: string;
+    zip_code?: string;
 
     // College Plans
-    intended_major?: string;
-    college_preferences?: string[];
-    career_goals?: string;
+    preferred_college_size?: string;
+    preferred_college_location?: string;
+    college_application_status?: string;
 
-    // Essays/Personal Statements
+    // Essays & Personal Statements
     personal_statement?: string;
-    career_essay?: string;
-    athletic_impact_essay?: string;
+    leadership_experience?: string;
+    challenges_overcome?: string;
 
-    // References
-    references?: any[];
+    // Scholarship Preferences
+    scholarship_types_interested?: string[];
+    application_deadline_preference?: string;
 
-    // Privacy Settings
-    field_privacy_settings?: { [key: string]: string };
+    // Additional Information
+    languages_spoken?: string[];
+    special_talents?: string[];
+    additional_info?: string;
 
-    // Profile Completion
-    profile_completed: boolean;
-    completion_percentage: number;
+    // Profile Status
+    profile_completed?: boolean;
+    completion_percentage?: number;
 
     // Timestamps
-    created_at: string;
+    created_at?: string;
     updated_at?: string;
+    completed_at?: string;
 }
 
 export interface ProfileSummary {
-    id: number;
-    user_id: number;
     profile_completed: boolean;
     completion_percentage: number;
-    profile_visibility: string;
-    high_school_name?: string;
-    graduation_year?: number;
-    sports_played?: string[];
-    updated_at?: string;
+    has_basic_info: boolean;
+    has_academic_info: boolean;
+    has_personal_info: boolean;
+    missing_fields: string[];
 }
 
-// Scholarship matching types
+// Keep existing scholarship types for future use
 export interface ScholarshipMatch {
     id: number;
     title: string;
@@ -232,9 +226,14 @@ export interface ScholarshipMatchResponse {
     user_id: number;
 }
 
-// Auth-specific API functions
+// Auth-specific API functions - Updated for FastAPI
 export const authAPI = {
     async login(email: string, password: string) {
+        // FastAPI uses OAuth2PasswordRequestForm which expects FormData
+        const formData = new FormData();
+        formData.append('username', email); // OAuth2 uses 'username' field for email
+        formData.append('password', password);
+
         return apiRequest<{
             access_token: string;
             token_type: string;
@@ -250,7 +249,8 @@ export const authAPI = {
             };
         }>(API_ENDPOINTS.LOGIN, {
             method: 'POST',
-            body: JSON.stringify({ email, password }),
+            headers: {}, // Remove Content-Type for FormData
+            body: formData,
         });
     },
 
@@ -304,7 +304,7 @@ export const authAPI = {
     },
 };
 
-// Profile API functions
+// Profile API functions - Updated for FastAPI
 export const profileAPI = {
     async getMyProfile() {
         try {
@@ -324,7 +324,14 @@ export const profileAPI = {
         } catch (error: any) {
             // If profile doesn't exist, return a default summary
             if (error.message?.includes('404') || error.message?.includes('not found')) {
-                return null;
+                return {
+                    profile_completed: false,
+                    completion_percentage: 0,
+                    has_basic_info: false,
+                    has_academic_info: false,
+                    has_personal_info: false,
+                    missing_fields: ['high_school_name', 'graduation_year', 'gpa', 'intended_major']
+                };
             }
             throw error;
         }
@@ -353,181 +360,87 @@ export const profileAPI = {
         return this.updateProfile({ [fieldName]: value });
     },
 
-    // FIXED: Use correct endpoint paths
     async completeProfile() {
-        return apiRequest<UserProfile>('/profiles/complete', {
+        return apiRequest<UserProfile>(API_ENDPOINTS.PROFILE_COMPLETE, {
             method: 'POST',
         });
     },
 
     async getProfileView() {
-        return apiRequest<any>('/profiles/view');
+        return apiRequest<any>(API_ENDPOINTS.PROFILE_VIEW);
     },
 
-    // FIXED: Proper FormData handling
+    // Note: File uploads not implemented in backend yet
     async uploadProfilePhoto(file: File) {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        // Get token manually for FormData requests
-        const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-
-        return fetch(`${API_BASE_URL}/profiles/upload/photo`, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                // Don't set Content-Type for FormData - let browser set it with boundary
-                ...(token && { Authorization: `Bearer ${token}` })
-            }
-        }).then(async response => {
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        });
+        throw new Error('Profile photo upload not implemented yet');
     },
 
     async uploadEssay(essayType: string, file: File) {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        // Get token manually for FormData requests
-        const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-
-        return fetch(`${API_BASE_URL}/profiles/upload/essay?essay_type=${essayType}`, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                // Don't set Content-Type for FormData - let browser set it with boundary
-                ...(token && { Authorization: `Bearer ${token}` })
-            }
-        }).then(async response => {
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        });
+        throw new Error('Essay upload not implemented yet');
     },
 };
 
-// Scholarship matching API functions
+// OAuth API functions - New for FastAPI backend
+export const oauthAPI = {
+    async getGoogleAuthUrl() {
+        return apiRequest<{ url: string; state: string }>(API_ENDPOINTS.OAUTH_GOOGLE_URL);
+    },
+
+    async getLinkedInAuthUrl() {
+        return apiRequest<{ url: string; state: string }>(API_ENDPOINTS.OAUTH_LINKEDIN_URL);
+    },
+
+    async getTikTokAuthUrl() {
+        return apiRequest<{ url: string; state: string }>(API_ENDPOINTS.OAUTH_TIKTOK_URL);
+    },
+
+    async getConnectedAccounts() {
+        return apiRequest<{ oauth_accounts: any[] }>(API_ENDPOINTS.OAUTH_ACCOUNTS);
+    },
+};
+
+// Scholarship matching API functions - Placeholder for future implementation
 export const scholarshipMatchingAPI = {
-    /**
-     * Get scholarship matches for the current user
-     */
     async getMyMatches(limit: number = 10): Promise<ScholarshipMatchResponse> {
-        const endpoint = `${API_ENDPOINTS.MY_SCHOLARSHIP_MATCHES}?limit=${limit}`;
-        return apiRequest<ScholarshipMatchResponse>(endpoint);
+        throw new Error('Scholarship matching not implemented yet');
     },
 
-    /**
-     * Get scholarship matches for a specific user (admin only)
-     */
     async getUserMatches(userId: number, limit: number = 10): Promise<ScholarshipMatchResponse> {
-        const endpoint = `${API_ENDPOINTS.USER_SCHOLARSHIP_MATCHES(userId)}?limit=${limit}`;
-        return apiRequest<ScholarshipMatchResponse>(endpoint);
+        throw new Error('Scholarship matching not implemented yet');
     },
 };
 
-// Platform statistics API
+// Platform statistics API - Placeholder for future implementation
 export const platformAPI = {
     async getStatistics() {
-        return apiRequest<{
-            total_users: number;
-            total_scholarships: number;
-            total_reviews: number;
-            average_rating: number;
-            rating_display: string;
-            total_scholarship_amount: number;
-            formatted_scholarship_amount: string;
-        }>(API_ENDPOINTS.PLATFORM_STATISTICS);
+        throw new Error('Platform statistics not implemented yet');
     },
 };
 
-// Review API
+// Review API - Placeholder for future implementation
 export const reviewAPI = {
-    async createReview(reviewData: {
-        rating: number;
-        title?: string;
-        comment?: string;
-    }) {
-        return apiRequest<{
-            id: number;
-            user_id: number;
-            rating: number;
-            title?: string;
-            comment?: string;
-            created_at: string;
-            user_name?: string;
-        }>(API_ENDPOINTS.REVIEWS, {
-            method: 'POST',
-            body: JSON.stringify(reviewData),
-        });
+    async createReview(reviewData: { rating: number; title?: string; comment?: string; }) {
+        throw new Error('Reviews not implemented yet');
     },
 
     async getMyReview() {
-        try {
-            return await apiRequest<{
-                id: number;
-                user_id: number;
-                rating: number;
-                title?: string;
-                comment?: string;
-                created_at: string;
-                user_name?: string;
-            }>(API_ENDPOINTS.MY_REVIEW);
-        } catch (error: any) {
-            // If it's a 404, return null instead of throwing
-            if (error.message?.includes('404') || error.message?.includes('not found')) {
-                return null;
-            }
-            // Re-throw other errors
-            throw error;
-        }
+        return null; // Return null for now
     },
 
-    async updateMyReview(reviewData: {
-        rating?: number;
-        title?: string;
-        comment?: string;
-    }) {
-        return apiRequest<{
-            id: number;
-            user_id: number;
-            rating: number;
-            title?: string;
-            comment?: string;
-            created_at: string;
-            updated_at?: string;
-            user_name?: string;
-        }>(API_ENDPOINTS.MY_REVIEW, {
-            method: 'PUT',
-            body: JSON.stringify(reviewData),
-        });
+    async updateMyReview(reviewData: { rating?: number; title?: string; comment?: string; }) {
+        throw new Error('Reviews not implemented yet');
     },
 
     async deleteMyReview() {
-        return apiRequest(API_ENDPOINTS.MY_REVIEW, {
-            method: 'DELETE',
-        });
+        throw new Error('Reviews not implemented yet');
     },
 
     async getAllReviews(skip = 0, limit = 100) {
-        return apiRequest<Array<{
-            id: number;
-            user_id: number;
-            rating: number;
-            title?: string;
-            comment?: string;
-            created_at: string;
-            user_name?: string;
-        }>>(`${API_ENDPOINTS.REVIEWS}?skip=${skip}&limit=${limit}`);
+        return []; // Return empty array for now
     },
 };
 
-// Scholarship helper functions
+// Keep all your existing helper functions
 export const formatScholarshipAmount = (
     amountMin?: string | null,
     amountMax?: string | null,

@@ -5,6 +5,7 @@ import { Mail, Lock, AlertCircle, Loader2, ArrowLeft, Eye, EyeOff, ChevronDown, 
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { oauthAPI } from '@/lib/api';
 
 export default function LoginPage() {
     const [formData, setFormData] = useState({
@@ -31,10 +32,42 @@ export default function LoginPage() {
     }, [clearError]);
 
     const handleOAuthLogin = async (provider: 'google' | 'linkedin' | 'tiktok') => {
-        // TODO: Implement OAuth handlers
-        console.log(`OAuth login with ${provider}`);
-        // This is where you'd integrate with your OAuth service
-        // Example: window.location.href = `/auth/oauth/${provider}`;
+        try {
+            console.log(`Starting OAuth flow for ${provider}`);
+
+            let authResponse;
+
+            switch (provider) {
+                case 'google':
+                    authResponse = await oauthAPI.getGoogleAuthUrl();
+                    break;
+                case 'linkedin':
+                    authResponse = await oauthAPI.getLinkedInAuthUrl();
+                    break;
+                case 'tiktok':
+                    authResponse = await oauthAPI.getTikTokAuthUrl();
+                    break;
+                default:
+                    throw new Error('Invalid OAuth provider');
+            }
+
+            console.log(`Redirecting to ${provider} OAuth:`, authResponse.url);
+
+            // Redirect to OAuth provider
+            window.location.href = authResponse.url;
+
+        } catch (error) {
+            console.error(`${provider} OAuth error:`, error);
+
+            // Show user-friendly error message
+            if (error instanceof Error) {
+                if (error.message.includes('not configured')) {
+                    alert(`${provider.charAt(0).toUpperCase() + provider.slice(1)} OAuth is not configured yet. Please try email login or contact support.`);
+                } else {
+                    alert(`Failed to connect with ${provider}. Please try again or use email login.`);
+                }
+            }
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
