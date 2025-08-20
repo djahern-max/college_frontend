@@ -1,3 +1,5 @@
+// In src/components/Navigation.tsx, update the Sign Up button to navigate to the register page instead of opening modal
+
 'use client';
 
 import React, { useState } from 'react';
@@ -19,11 +21,13 @@ const Navigation: React.FC<NavigationProps> = ({ onOpenReviewModal, onOpenAuthMo
     const router = useRouter();
 
     const handleLogin = () => {
-        onOpenAuthModal?.('login');
+        // Navigate to login page instead of modal
+        router.push('/auth/login');
     };
 
     const handleRegister = () => {
-        onOpenAuthModal?.('register');
+        // Navigate to register page instead of modal
+        router.push('/auth/register');
     };
 
     const handleLogout = () => {
@@ -104,7 +108,7 @@ const Navigation: React.FC<NavigationProps> = ({ onOpenReviewModal, onOpenAuthMo
                                     onClick={handleRegister}
                                     className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-medium transition-colors"
                                 >
-                                    Sign Up
+                                    Register
                                 </button>
                             </>
                         )}
@@ -118,81 +122,78 @@ const Navigation: React.FC<NavigationProps> = ({ onOpenReviewModal, onOpenAuthMo
                         {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
                     </button>
                 </div>
-            </div>
 
-            {/* Mobile Menu */}
-            {isMenuOpen && (
-                <div className="md:hidden bg-gray-800 border-b border-gray-700">
-                    <div className="px-4 py-4 space-y-3">
-                        <Link
-                            href="/search"
-                            className="block text-gray-300 hover:text-white"
-                            onClick={() => setIsMenuOpen(false)}
-                        >
-                            Search
-                        </Link>
-                        {isAuthenticated && (
-                            <>
-                                <Link
-                                    href={profileLinkHref}
-                                    className="block text-gray-300 hover:text-white"
-                                    onClick={() => setIsMenuOpen(false)}
-                                >
-                                    {profileLinkText}
-                                </Link>
-                                <button
-                                    onClick={() => {
-                                        handleReviewClick();
-                                        setIsMenuOpen(false);
-                                    }}
-                                    className="block w-full text-left text-gray-300 hover:text-white flex items-center gap-2"
-                                >
-                                    <Star size={16} />
-                                    Leave a Review
-                                </button>
-                            </>
-                        )}
-                        <hr className="border-gray-700" />
-                        {isAuthenticated ? (
-                            <>
-                                <div className="text-gray-300">Hi, {user?.first_name || user?.username}</div>
-                                <button
-                                    onClick={() => {
-                                        handleLogout();
-                                        setIsMenuOpen(false);
-                                    }}
-                                    className="block w-full text-left text-gray-300 hover:text-white"
-                                >
-                                    Logout
-                                </button>
-                            </>
-                        ) : (
-                            <>
-                                <button
-                                    onClick={() => {
-                                        handleLogin();
-                                        setIsMenuOpen(false);
-                                    }}
-                                    className="block w-full text-left text-gray-300 hover:text-white"
-                                >
-                                    Login
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        handleRegister();
-                                        setIsMenuOpen(false);
-                                    }}
-                                    className="block w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-medium"
-                                >
-                                    Sign Up
-                                </button>
-                            </>
-                        )}
+                {/* Mobile menu */}
+                {isMenuOpen && (
+                    <div className="md:hidden border-t border-gray-800">
+                        <div className="px-4 py-4 space-y-4">
+                            <Link
+                                href="/search"
+                                className="block text-gray-300 hover:text-white"
+                                onClick={() => setIsMenuOpen(false)}
+                            >
+                                Search
+                            </Link>
+                            {isAuthenticated && (
+                                <>
+                                    <Link
+                                        href={profileLinkHref}
+                                        className="block text-gray-300 hover:text-white"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        {profileLinkText}
+                                    </Link>
+                                    <button
+                                        onClick={() => {
+                                            handleReviewClick();
+                                            setIsMenuOpen(false);
+                                        }}
+                                        className="block w-full text-left text-gray-300 hover:text-white"
+                                    >
+                                        Review
+                                    </button>
+                                </>
+                            )}
+                            {isAuthenticated ? (
+                                <>
+                                    <div className="text-gray-300">Hi, {user?.first_name || user?.username}</div>
+                                    <button
+                                        onClick={() => {
+                                            handleLogout();
+                                            setIsMenuOpen(false);
+                                        }}
+                                        className="block w-full text-left text-gray-300 hover:text-white"
+                                    >
+                                        Logout
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={() => {
+                                            handleLogin();
+                                            setIsMenuOpen(false);
+                                        }}
+                                        className="block w-full text-left text-gray-300 hover:text-white"
+                                    >
+                                        Login
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            handleRegister();
+                                            setIsMenuOpen(false);
+                                        }}
+                                        className="block w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-medium"
+                                    >
+                                        Register
+                                    </button>
+                                </>
+                            )}
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
         </nav>
     );
-};
-
+}
 export default Navigation;
