@@ -1,6 +1,51 @@
 // API configuration and base URL
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
+// =========================
+// ERROR CLASSES (Add these at the top)
+// =========================
+export class APIError extends Error {
+    constructor(
+        message: string,
+        public status: number,
+        public code?: string,
+        public details?: any
+    ) {
+        super(message);
+        this.name = 'APIError';
+    }
+}
+
+export class ValidationError extends APIError {
+    constructor(message: string, public fields?: Record<string, string[]>) {
+        super(message, 422, 'VALIDATION_ERROR');
+    }
+}
+
+export class AuthenticationError extends APIError {
+    constructor(message: string = 'Authentication failed') {
+        super(message, 401, 'AUTH_ERROR');
+    }
+}
+
+export class AuthorizationError extends APIError {
+    constructor(message: string = 'Access denied') {
+        super(message, 403, 'AUTHORIZATION_ERROR');
+    }
+}
+
+export class NotFoundError extends APIError {
+    constructor(message: string = 'Resource not found') {
+        super(message, 404, 'NOT_FOUND_ERROR');
+    }
+}
+
+export class ServerError extends APIError {
+    constructor(message: string = 'Internal server error') {
+        super(message, 500, 'SERVER_ERROR');
+    }
+}
+
 // Helper function to get image URLs (images are served from backend root, not API path)
 export const getImageUrl = (path: string | null | undefined): string | null => {
     if (!path) return null;
@@ -57,23 +102,15 @@ export const API_ENDPOINTS = {
     REVIEW_STATISTICS: '/reviews/statistics',
 } as const;
 
-// Helper function to make API requests
+// =========================
+// IMPROVED API REQUEST FUNCTION
+// =========================
 export async function apiRequest<T>(
     endpoint: string,
     options: RequestInit = {}
 ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
-
-    // Get token from localStorage if available
     const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-
-    // Debug logging
-    console.log('API Request:', {
-        url,
-        method: options.method || 'GET',
-        hasToken: !!token,
-        tokenPreview: token ? `${token.substring(0, 20)}...` : 'none'
-    });
 
     const config: RequestInit = {
         headers: {
@@ -87,43 +124,101 @@ export async function apiRequest<T>(
     try {
         const response = await fetch(url, config);
 
-        // Debug response
-        console.log('API Response:', {
-            status: response.status,
-            statusText: response.statusText,
-            url: response.url
-        });
+        // Parse response body once
+        let responseData;
+        try {
+            responseData = await response.json();
+        } catch {
+            responseData = {}; // Empty object if no JSON body
+        }
 
-        // Handle different response types
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
+            // Handle specific error types based on status code
+            switch (response.status) {
+                case 400:
+                    throw new ValidationError(
+                        responseData.detail || 'Invalid request data',
+                        responseData.errors || {}
+                    );
 
-            // Enhanced error handling for auth issues
-            if (response.status === 401) {
-                if (typeof window !== 'undefined') {
-                    localStorage.removeItem('access_token');
-                }
-                throw new Error('Not authenticated');
+                case 401:
+                    // Clear token on authentication error
+                    if (typeof window !== 'undefined') {
+                        localStorage.removeItem('access_token');
+                    }
+
+                    // Different messages for different auth scenarios
+                    if (endpoint === '/auth/login') {
+                        throw new AuthenticationError('Invalid email or password');
+                    } else {
+                        throw new AuthenticationError('Your session has expired');
+                    }
+
+                case 403:
+                    throw new AuthorizationError(
+                        responseData.detail || 'You do not have permission to access this resource'
+                    );
+
+                case 404:
+                    throw new NotFoundError(responseData.detail || 'Resource not found');
+
+                case 422:
+                    // FastAPI validation errors
+                    let validationMessage = 'Please check your input';
+                    let fieldErrors = {};
+
+                    if (responseData.detail && Array.isArray(responseData.detail)) {
+                        // Parse FastAPI validation errors
+                        fieldErrors = responseData.detail.reduce((acc: any, error: any) => {
+                            const field = error.loc?.[error.loc.length - 1] || 'general';
+                            if (!acc[field]) acc[field] = [];
+                            acc[field].push(error.msg);
+                            return acc;
+                        }, {});
+
+                        validationMessage = Object.values(fieldErrors).flat().join(', ');
+                    }
+
+                    throw new ValidationError(validationMessage, fieldErrors);
+
+                case 429:
+                    throw new APIError('Too many requests. Please wait and try again.', 429, 'RATE_LIMIT');
+
+                case 500:
+                case 502:
+                case 503:
+                case 504:
+                    throw new ServerError('Server error. Please try again later.');
+
+                default:
+                    throw new APIError(
+                        responseData.detail || responseData.message || `HTTP ${response.status}`,
+                        response.status
+                    );
             }
-
-            if (response.status === 403) {
-                throw new Error('Not authenticated');
-            }
-
-            throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
         }
 
-        // Handle empty responses (like 204 No Content)
-        if (response.status === 204) {
-            return {} as T;
-        }
-
-        return await response.json();
+        return responseData;
     } catch (error) {
-        console.error('API request failed:', error);
-        throw error;
+        // Network errors (no response from server)
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+            throw new APIError('Network error. Please check your connection.', 0, 'NETWORK_ERROR');
+        }
+
+        // Re-throw our custom errors
+        if (error instanceof APIError) {
+            throw error;
+        }
+
+        // Unknown errors
+        throw new ServerError('An unexpected error occurred');
     }
 }
+
+// =========================
+// ALL YOUR EXISTING INTERFACES AND CODE BELOW THIS LINE
+// (Keep everything else exactly the same)
+// =========================
 
 // Profile API types - Updated for FastAPI backend
 export interface UserProfile {

@@ -177,7 +177,7 @@ export default function RegisterPage() {
                                 filter: 'drop-shadow(0 0 2px #60a5fa)'
                             }}
                         >
-                            🎓
+                            🪄🎓
                         </div>
                         <h1 className="text-3xl font-bold text-white mb-2">
                             Join CampusConnect

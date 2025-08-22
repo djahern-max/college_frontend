@@ -55,10 +55,10 @@ const Navigation: React.FC<NavigationProps> = ({ onOpenReviewModal, onOpenAuthMo
                                 filter: 'drop-shadow(0 0 2px #60a5fa)'
                             }}
                         >
-                            🎓
+                            🪄 🎓
                         </div>
                         <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                            Frrant
+                            Vwaala
                         </span>
                     </Link>
 

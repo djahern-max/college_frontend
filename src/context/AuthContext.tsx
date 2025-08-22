@@ -11,6 +11,7 @@ interface User {
     last_name?: string;
     is_active: boolean;
     created_at: string;
+
 }
 
 interface AuthContextType {
@@ -26,7 +27,7 @@ interface AuthContextType {
         last_name?: string;
     }) => Promise<void>;
     logout: () => void;
-    error: string | null;
+    error: string | null; // Keep as string for display
     clearError: () => void;
 }
 
@@ -73,30 +74,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(response.user);
 
         } catch (error) {
-            let errorMessage = 'Login failed. Please try again.';
+            console.error('Login failed:', error);
 
+            // Handle APIError objects and convert to string
             if (error instanceof Error) {
-                // Handle specific error messages from the API
-                if (error.message.includes('401') || error.message.toLowerCase().includes('incorrect')) {
-                    errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-                } else if (error.message.includes('400')) {
-                    errorMessage = 'Invalid login request. Please check your email format.';
-                } else if (error.message.includes('500')) {
-                    errorMessage = 'Server error. Please try again in a few moments.';
-                } else if (error.message.includes('network') || error.message.includes('fetch')) {
-                    errorMessage = 'Network error. Please check your internet connection.';
-                } else {
-                    errorMessage = error.message;
-                }
+                setError(error.message); // This extracts the message from APIError
+            } else {
+                setError('Login failed. Please try again.');
             }
 
-            setError(errorMessage);
             throw error;
         } finally {
             setIsLoading(false);
         }
     };
-
     const register = async (userData: {
         email: string;
         username: string;
