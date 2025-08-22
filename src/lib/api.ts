@@ -348,7 +348,6 @@ export const authAPI = {
             body: formData,
         });
     },
-
     async register(userData: {
         email: string;
         username: string;
