@@ -171,7 +171,7 @@ export default function RegisterPage() {
                     {/* Header */}
                     <div className="text-center mb-8">
                         <div
-                            className="text-2xl mb-4"
+                            className="text-5xl mb-4"  // Changed from text-2xl to text-5xl
                             style={{
                                 textShadow: '0 0 3px #60a5fa, 0 0 6px #60a5fa',
                                 filter: 'drop-shadow(0 0 2px #60a5fa)'

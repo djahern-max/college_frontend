@@ -113,7 +113,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
                         🎓
                     </div>
                     <h2 className="text-2xl font-bold text-white mb-2">
-                        {mode === 'login' ? 'Welcome Back!' : 'Join CampusConnect'}
+                        {mode === 'login' ? 'Welcome Back!' : 'Join Frrant'}
                     </h2>
                     <p className="text-gray-400">
                         {mode === 'login'

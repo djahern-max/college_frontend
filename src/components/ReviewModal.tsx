@@ -159,8 +159,8 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, onReviewSubm
                     </h2>
                     <p className="text-gray-400">
                         {isEditing
-                            ? 'Update your review of CampusConnect'
-                            : 'Help other students by rating CampusConnect'
+                            ? 'Update your review of Frrant'
+                            : 'Help other students by rating Frrant'
                         }
                     </p>
                 </div>
@@ -209,8 +209,8 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, onReviewSubm
                                         <Star
                                             size={32}
                                             className={`${star <= (hoverRating || rating)
-                                                    ? 'text-yellow-400 fill-current'
-                                                    : 'text-gray-600'
+                                                ? 'text-yellow-400 fill-current'
+                                                : 'text-gray-600'
                                                 } transition-colors`}
                                         />
                                     </button>
@@ -249,7 +249,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, onReviewSubm
                                 <textarea
                                     value={comment}
                                     onChange={(e) => setComment(e.target.value)}
-                                    placeholder="Tell other students about your experience using CampusConnect..."
+                                    placeholder="Tell other students about your experience using Frrant..."
                                     rows={4}
                                     maxLength={1000}
                                     className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 resize-none"

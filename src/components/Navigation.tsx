@@ -58,7 +58,7 @@ const Navigation: React.FC<NavigationProps> = ({ onOpenReviewModal, onOpenAuthMo
                             🎓
                         </div>
                         <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                            CampusConnect
+                            Frrant
                         </span>
                     </Link>
 

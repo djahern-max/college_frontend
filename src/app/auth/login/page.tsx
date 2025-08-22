@@ -116,7 +116,7 @@ export default function LoginPage() {
                     {/* Header */}
                     <div className="text-center mb-8">
                         <div
-                            className="text-2xl mb-4"
+                            className="text-5xl mb-4"  // text-5xl = 48px (double the size)
                             style={{
                                 textShadow: '0 0 3px #60a5fa, 0 0 6px #60a5fa',
                                 filter: 'drop-shadow(0 0 2px #60a5fa)'
