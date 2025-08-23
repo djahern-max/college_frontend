@@ -529,7 +529,7 @@ export const reviewAPI = {
         throw new Error('Reviews not implemented yet');
     },
 
-    async getAllReviews(skip = 0, limit = 100) {
+    async getAllReviews(skip = 0) {
         return []; // Return empty array for now
     },
 };

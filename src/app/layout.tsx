@@ -8,7 +8,7 @@ import Layout from '@/components/Layout';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Vwaala - The One Place to Find Scholarships',
+  title: 'MagicScholar.com - The One Place to Find Scholarships',
   description: 'Discover, apply, and win scholarships from thousands of universities and organizations. Your education funding journey starts here.',
   keywords: 'scholarships, college funding, financial aid, education, universities, campus, student resources',
 };
