@@ -63,6 +63,7 @@ export const getImageUrl = (path: string | null | undefined): string | null => {
 // API endpoints - Updated for FastAPI backend
 export const API_ENDPOINTS = {
     // Auth endpoints
+    REGISTER: '/auth/register',
     LOGIN: '/auth/login',
     LOGOUT: '/auth/logout',
     REFRESH: '/auth/refresh',
@@ -363,7 +364,7 @@ export const authAPI = {
             last_name?: string;
             is_active: boolean;
             created_at: string;
-        }>(API_ENDPOINTS.USERS, {
+        }>(API_ENDPOINTS.REGISTER, {
             method: 'POST',
             body: JSON.stringify(userData),
         });
