@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     siteName: 'MagicScholar',
     images: [
       {
-        url: '/og-image.jpg',
+        url: '/og-image.png',
         width: 1200,
         height: 630,
         alt: 'MagicScholar - Scholarship Discovery Platform 🪄🎓',
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'MagicScholar - The One Place to Find Scholarships',
     description: 'Discover, apply, and win scholarships from thousands of universities and organizations.',
-    images: ['/og-image.jpg'],
+    images: ['/og-image.png'],
     creator: '@magicscholar', // Update with your actual Twitter handle
   },
 
