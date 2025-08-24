@@ -170,7 +170,7 @@ export default function RegisterPage() {
                             🪄🎓
                         </div>
                         <h1 className="text-3xl font-bold text-white mb-2">
-                            Join CampusConnect
+                            Join MagicScholar
                         </h1>
                         <p className="text-gray-400">
                             Create your account and start finding scholarships
