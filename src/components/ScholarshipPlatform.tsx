@@ -84,14 +84,15 @@ const ScholarshipPlatform: React.FC = () => {
 
                 <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-16">
-                        <h1 className="text-5xl lg:text-7xl font-bold mb-6 leading-tight">
-                            THE ONE PLACE TO FIND
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold mb-6 leading-tight">
+                            <span className="block">THE ONE PLACE</span>
+                            <span className="block">TO FIND</span>
                             <span className="block bg-gradient-to-r from-pink-400 via-purple-500 to-blue-500 bg-clip-text text-transparent">
                                 SCHOLARSHIPS
                             </span>
                         </h1>
 
-                        <p className="text-xl lg:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
+                        <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed px-4">
                             Discover, apply, and win scholarships from thousands of universities and organizations.
                             Your education funding journey starts here.
                         </p>
@@ -111,79 +112,80 @@ const ScholarshipPlatform: React.FC = () => {
                             <span className="text-gray-400">{platformStats.rating_display}</span>
                         </div>
 
+
                         {/* CTA Buttons */}
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8 px-4">
                             <button
                                 onClick={handleStartSearching}
-                                className="bg-blue-600 hover:bg-blue-700 px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-200 transform hover:scale-105 flex items-center gap-2"
+                                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-2"
                             >
                                 Start Searching <Search size={20} />
                             </button>
-                            <button className="border border-gray-600 hover:border-gray-500 px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-200 hover:bg-gray-800">
+                            <button className="w-full sm:w-auto border border-gray-600 hover:border-gray-500 px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-all duration-200 hover:bg-gray-800">
                                 View Success Stories
                             </button>
                         </div>
-                    </div>
 
-                    {/* Search Bar */}
-                    <div className="max-w-2xl mx-auto mb-16">
-                        <form onSubmit={handleSearchSubmit} className="relative">
-                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                            <input
-                                type="text"
-                                placeholder="Search scholarships by major, university, or keyword..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-12 pr-4 py-4 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
-                            />
-                            <button
-                                type="submit"
-                                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-medium transition-colors"
-                            >
-                                Search
-                            </button>
-                        </form>
-                    </div>
+                        {/* Search Bar */}
+                        <div className="max-w-2xl mx-auto mb-12 px-4">
+                            <form onSubmit={handleSearchSubmit} className="relative">
+                                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                                <input
+                                    type="text"
+                                    placeholder="Search scholarships..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full pl-12 pr-20 py-3 sm:py-4 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 text-sm sm:text-base"
+                                />
+                                <button
+                                    type="submit"
+                                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 hover:bg-blue-700 px-3 sm:px-6 py-1.5 sm:py-2 rounded-lg font-medium transition-colors text-sm sm:text-base"
+                                >
+                                    Search
+                                </button>
+                            </form>
+                        </div>
 
-                    {/* Stats */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
-                        <div className="text-center">
-                            <div className="text-4xl lg:text-5xl font-bold text-blue-400 mb-2">
-                                {statsLoading ? (
-                                    <div className="animate-pulse">Loading...</div>
-                                ) : (
-                                    platformStats.formatted_scholarship_amount
-                                )}
+                        {/* Stats */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
+                            <div className="text-center">
+                                <div className="text-4xl lg:text-5xl font-bold text-blue-400 mb-2">
+                                    {statsLoading ? (
+                                        <div className="animate-pulse">Loading...</div>
+                                    ) : (
+                                        platformStats.formatted_scholarship_amount
+                                    )}
+                                </div>
+                                <div className="text-gray-400">Available in Scholarships</div>
                             </div>
-                            <div className="text-gray-400">Available in Scholarships</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-4xl lg:text-5xl font-bold text-purple-400 mb-2">
-                                {statsLoading ? (
-                                    <div className="animate-pulse">Loading...</div>
-                                ) : (
-                                    `${platformStats.total_scholarships.toLocaleString()}${platformStats.total_scholarships > 0 ? '+' : ''}`
-                                )}
+                            <div className="text-center">
+                                <div className="text-4xl lg:text-5xl font-bold text-purple-400 mb-2">
+                                    {statsLoading ? (
+                                        <div className="animate-pulse">Loading...</div>
+                                    ) : (
+                                        `${platformStats.total_scholarships.toLocaleString()}${platformStats.total_scholarships > 0 ? '+' : ''}`
+                                    )}
+                                </div>
+                                <div className="text-gray-400">Active Opportunities</div>
                             </div>
-                            <div className="text-gray-400">Active Opportunities</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-4xl lg:text-5xl font-bold text-pink-400 mb-2">
-                                {statsLoading ? (
-                                    <div className="animate-pulse">Loading...</div>
-                                ) : (
-                                    platformStats.students_helped.toLocaleString()
-                                )}
+                            <div className="text-center">
+                                <div className="text-4xl lg:text-5xl font-bold text-pink-400 mb-2">
+                                    {statsLoading ? (
+                                        <div className="animate-pulse">Loading...</div>
+                                    ) : (
+                                        platformStats.students_helped.toLocaleString()
+                                    )}
+                                </div>
+                                <div className="text-gray-400">Students Helped</div>
                             </div>
-                            <div className="text-gray-400">Students Helped</div>
                         </div>
-                    </div>
 
-                    {/* Full-Width Scholarship Banner */}
-                    <div className="mb-20">
-                        <ScholarshipBanner />
+                        {/* Full-Width Scholarship Banner */}
+                        <div className="mb-20">
+                            <ScholarshipBanner />
+                        </div>
                     </div>
-                </div>
+                </div>åß
             </section>
         </>
     );
