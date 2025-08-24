@@ -8,11 +8,11 @@ import { Loader2 } from 'lucide-react';
 export default function AuthCallbackPage() {
     const searchParams = useSearchParams();
     const router = useRouter();
-    const { isAuthenticated } = useAuth();
+    const { handleOAuthToken, isAuthenticated } = useAuth();
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const handleCallback = async () => {
+        const processOAuthCallback = async () => {
             try {
                 const token = searchParams.get('token');
                 const errorMessage = searchParams.get('message');
@@ -25,12 +25,15 @@ export default function AuthCallbackPage() {
 
                 // Handle success case
                 if (token) {
-                    // Store the token directly in localStorage (same as your AuthContext does)
-                    localStorage.setItem('access_token', token);
+                    console.log('✅ OAuth token received, processing...');
 
-                    // Force a page reload to trigger the AuthContext useEffect
-                    // This will make AuthContext fetch the user data with the new token
-                    window.location.href = '/dashboard';
+                    // Use the AuthContext method to handle the token
+                    await handleOAuthToken(token);
+
+                    console.log('✅ Authentication complete, redirecting to dashboard...');
+
+                    // Redirect to dashboard
+                    router.push('/dashboard');
                 } else {
                     setError('No authentication token received');
                 }
@@ -42,9 +45,9 @@ export default function AuthCallbackPage() {
 
         // Don't run if already authenticated
         if (!isAuthenticated) {
-            handleCallback();
+            processOAuthCallback();
         }
-    }, [searchParams, isAuthenticated]);
+    }, [searchParams, handleOAuthToken, router, isAuthenticated]);
 
     // If already authenticated, redirect to dashboard
     useEffect(() => {

@@ -11,7 +11,6 @@ interface User {
     last_name?: string;
     is_active: boolean;
     created_at: string;
-
 }
 
 interface AuthContextType {
@@ -26,8 +25,9 @@ interface AuthContextType {
         first_name?: string;
         last_name?: string;
     }) => Promise<void>;
+    handleOAuthToken: (token: string) => Promise<User>; // Added this
     logout: () => void;
-    error: string | null; // Keep as string for display
+    error: string | null;
     clearError: () => void;
 }
 
@@ -88,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setIsLoading(false);
         }
     };
+
     const register = async (userData: {
         email: string;
         username: string;
@@ -142,6 +143,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    // NEW: Handle OAuth token from callback
+    const handleOAuthToken = async (token: string): Promise<User> => {
+        try {
+            setIsLoading(true);
+            setError(null);
+
+            console.log('🔐 Processing OAuth token...');
+
+            // Store token in localStorage
+            localStorage.setItem('access_token', token);
+
+            // Fetch user data with the new token
+            const userData = await authAPI.getCurrentUser();
+            setUser(userData);
+
+            console.log('✅ OAuth authentication successful:', userData.email);
+
+            return userData;
+        } catch (error) {
+            console.error('❌ OAuth token validation failed:', error);
+            localStorage.removeItem('access_token');
+            setError('Authentication failed');
+            throw error;
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const logout = () => {
         // Remove token from localStorage
         localStorage.removeItem('access_token');
@@ -164,6 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated,
         login,
         register,
+        handleOAuthToken, // Added this to the value object
         logout,
         error,
         clearError,
