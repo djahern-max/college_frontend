@@ -1,637 +1,503 @@
-'use client';
-
+// ProfileView Component - Displays completed profile information
 import React, { useState, useEffect } from 'react';
-import { User, GraduationCap, Trophy, Heart, Briefcase, Edit, Upload, FileText, Camera, CheckCircle, Calendar, LayoutDashboard } from 'lucide-react';
-import { profileAPI } from '@/lib/api';
-import { getImageUrl } from '@/lib/api';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
-import DocumentsEssaysSection from './DocumentsEssaysSection';
+import {
+    Edit,
+    User,
+    GraduationCap,
+    Target,
+    Users,
+    FileText,
+    Settings,
+    MapPin,
+    Calendar,
+    Phone,
+    Mail,
+    Award,
+    BookOpen,
+    Heart,
+    Globe,
+    TrendingUp,
+    CheckCircle,
+    AlertCircle
+} from 'lucide-react';
 
-interface ProfileViewData {
-    user: {
-        first_name: string;
-        last_name: string;
-        email: string;
-    };
-    basic_info: {
-        high_school_name?: string;
-        graduation_year?: number;
-        city?: string;
-        state?: string;
-        phone?: string;
-        date_of_birth?: string;
-    };
-    academics: {
-        gpa?: number;
-        sat_score?: number;
-        act_score?: number;
-        honors_courses: string[];
-        academic_awards: string[];
-    };
-    athletics: {
-        sports_played: string[];
-        athletic_awards: string[];
-    };
-    community: {
-        volunteer_organizations: string[];
-        volunteer_hours?: number;
-    };
-    activities: {
-        extracurricular_activities: string[];
-        intended_major?: string;
-        career_goals?: string;
-    };
-    completion: {
-        profile_completed: boolean;
-        completion_percentage: number;
-        created_at?: string;
-        updated_at?: string;
-    };
-    uploads: {
-        profile_photo_url?: string;
-        personal_statement?: string;
-        career_essay?: string;
-        athletic_impact_essay?: string;
-    };
+interface ProfileData {
+    // Basic Information
+    date_of_birth?: string;
+    phone_number?: string;
+    high_school_name?: string;
+    graduation_year?: number;
+    gpa?: number;
+    state?: string;
+    city?: string;
+    zip_code?: string;
+
+    // Academic Information
+    sat_score?: number;
+    act_score?: number;
+    intended_major?: string;
+    academic_interests?: string[];
+    career_goals?: string[];
+
+    // Activities & Experience
+    extracurricular_activities?: string[];
+    volunteer_experience?: string[];
+    volunteer_hours?: number;
+    special_talents?: string[];
+    languages_preferred?: string[];
+
+    // Background & Demographics
+    ethnicity?: string[];
+    first_generation_college?: boolean;
+    household_income_range?: string;
+
+    // Essays & Statements
+    personal_statement?: string;
+    leadership_essay?: string;
+    community_service_essay?: string;
+
+    // Preferences
+    scholarship_types_interested?: string[];
+    college_size_preference?: string[];
+    college_location_preference?: string[];
 }
 
-const ProfileView: React.FC = () => {
-    const router = useRouter();
-    const { isAuthenticated } = useAuth();
-    const [profileData, setProfileData] = useState<ProfileViewData | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+interface CompletionStatus {
+    section_name: string;
+    is_completed: boolean;
+    completion_percentage: number;
+    required_fields: string[];
+    completed_fields: string[];
+    missing_fields: string[];
+}
+
+interface ProfileViewProps {
+    editable?: boolean;
+    onEdit?: () => void;
+}
+
+const ProfileView: React.FC<ProfileViewProps> = ({ editable = true, onEdit }) => {
+    const [profileData, setProfileData] = useState<ProfileData>({});
+    const [completionStatus, setCompletionStatus] = useState<Record<string, CompletionStatus>>({});
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
     useEffect(() => {
-        const loadProfile = async () => {
+        const loadProfileData = async () => {
             try {
-                const data = await profileAPI.getProfileView();
-                setProfileData(data);
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    setError('Please log in to view your profile');
+                    return;
+                }
+
+                // Load profile data
+                const profileResponse = await fetch('/api/v1/profiles/', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (profileResponse.ok) {
+                    const profile = await profileResponse.json();
+                    setProfileData(profile);
+                }
+
+                // Load completion status
+                const statusResponse = await fetch('/api/v1/profiles/sections', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (statusResponse.ok) {
+                    const status = await statusResponse.json();
+                    setCompletionStatus(status);
+                }
+
             } catch (err) {
-                setError('Failed to load profile');
-                console.error('Error loading profile:', err);
+                setError('Failed to load profile data');
+                console.error('Profile loading error:', err);
             } finally {
-                setIsLoading(false);
+                setLoading(false);
             }
         };
 
-        loadProfile();
+        loadProfileData();
     }, []);
 
-    const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        console.log('Photo upload started');
-        const file = event.target.files?.[0];
-        if (!file) {
-            console.log('No file selected');
-            return;
-        }
+    const formatTestScore = (score: number | undefined, maxScore: number, testName: string) => {
+        if (!score) return null;
+        const percentage = Math.round((score / maxScore) * 100);
+        return `${score}/${maxScore} (${percentage}th percentile)`;
+    };
 
-        console.log('File selected:', file.name, file.type, file.size);
+    const formatList = (items: string[] | undefined, emptyText: string = 'None specified') => {
+        if (!items || items.length === 0) return emptyText;
+        return items.join(', ');
+    };
 
-        // Validate file type
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-        if (!allowedTypes.includes(file.type)) {
-            alert('Please select a valid image file (JPEG, PNG, or WebP)');
-            return;
-        }
+    const calculateOverallCompletion = () => {
+        const sections = Object.values(completionStatus);
+        if (sections.length === 0) return 0;
 
-        // Validate file size (5MB max)
-        const maxSize = 5 * 1024 * 1024; // 5MB
-        if (file.size > maxSize) {
-            alert('File is too large. Please select an image under 5MB.');
-            return;
-        }
+        const totalPercentage = sections.reduce((sum, section) => sum + section.completion_percentage, 0);
+        return Math.round(totalPercentage / sections.length);
+    };
 
-        try {
-            setIsUploadingPhoto(true);
-            console.log('Uploading photo...');
-            const result = await profileAPI.uploadProfilePhoto(file);
-            console.log('Upload result:', result);
-
-            // Update the profile data with the new photo URL
-            if (profileData) {
-                setProfileData({
-                    ...profileData,
-                    uploads: {
-                        ...profileData.uploads,
-                        profile_photo_url: result.photo_url
-                    }
-                });
-            }
-
-            alert('Photo uploaded successfully!');
-        } catch (error) {
-            console.error('Photo upload failed:', error);
-            alert(`Failed to upload photo: ${error}`);
-        } finally {
-            setIsUploadingPhoto(false);
-            // Clear the input
-            event.target.value = '';
+    const getSectionIcon = (sectionId: string) => {
+        switch (sectionId) {
+            case 'basic_info': return User;
+            case 'academic_info': return GraduationCap;
+            case 'activities_experience': return Target;
+            case 'background_demographics': return Users;
+            case 'essays_statements': return FileText;
+            case 'preferences': return Settings;
+            default: return User;
         }
     };
 
-    if (isLoading) {
+    if (loading) {
         return (
-            <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-                <div className="text-white">Loading profile...</div>
+            <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 flex items-center justify-center">
+                <div className="text-white text-xl">Loading your profile...</div>
             </div>
         );
     }
 
-    if (error || !profileData) {
+    if (error) {
         return (
-            <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-                <div className="text-red-400">{error || 'Profile not found'}</div>
+            <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 flex items-center justify-center">
+                <div className="text-red-400 text-xl">{error}</div>
             </div>
         );
     }
 
-    // Calculate imageUrl after we know profileData exists
-    const imageUrl = getImageUrl(profileData.uploads?.profile_photo_url);
-
-    const sections = [
-        {
-            id: 'basic',
-            title: 'Basic Information',
-            icon: User,
-            color: 'blue',
-            data: profileData.basic_info,
-            isEmpty: !Object.values(profileData.basic_info).some(v => v),
-            editLink: '/profile/edit#basic'
-        },
-        {
-            id: 'academics',
-            title: 'Academic Information',
-            icon: GraduationCap,
-            color: 'green',
-            data: profileData.academics,
-            isEmpty: !profileData.academics.gpa && !profileData.academics.sat_score &&
-                profileData.academics.honors_courses.length === 0,
-            editLink: '/profile/edit#academics'
-        },
-        {
-            id: 'athletics',
-            title: 'Sports & Athletics',
-            icon: Trophy,
-            color: 'orange',
-            data: profileData.athletics,
-            isEmpty: profileData.athletics.sports_played.length === 0 &&
-                profileData.athletics.athletic_awards.length === 0,
-            editLink: '/profile/edit#athletics'
-        },
-        {
-            id: 'community',
-            title: 'Community Service',
-            icon: Heart,
-            color: 'pink',
-            data: profileData.community,
-            isEmpty: profileData.community.volunteer_organizations.length === 0 &&
-                !profileData.community.volunteer_hours,
-            editLink: '/profile/edit#community'
-        },
-        {
-            id: 'activities',
-            title: 'Activities & Future Plans',
-            icon: Briefcase,
-            color: 'purple',
-            data: profileData.activities,
-            isEmpty: profileData.activities.extracurricular_activities.length === 0 &&
-                !profileData.activities.intended_major,
-            editLink: '/profile/edit#activities'
-        }
-    ];
-
-    const renderSectionContent = (section: any) => {
-        if (section.isEmpty) {
-            return (
-                <div className="text-gray-500 italic py-4">
-                    No information added yet
-                </div>
-            );
-        }
-
-        switch (section.id) {
-            case 'basic':
-                return (
-                    <div className="space-y-3">
-                        {profileData!.basic_info.high_school_name && (
-                            <div>
-                                <span className="text-gray-400">High School: </span>
-                                <span>{profileData!.basic_info.high_school_name}</span>
-                            </div>
-                        )}
-                        {profileData!.basic_info.graduation_year && (
-                            <div>
-                                <span className="text-gray-400">Graduation Year: </span>
-                                <span>{profileData!.basic_info.graduation_year}</span>
-                            </div>
-                        )}
-                        {(profileData!.basic_info.city || profileData!.basic_info.state) && (
-                            <div>
-                                <span className="text-gray-400">Location: </span>
-                                <span>
-                                    {profileData!.basic_info.city}
-                                    {profileData!.basic_info.city && profileData!.basic_info.state && ', '}
-                                    {profileData!.basic_info.state}
-                                </span>
-                            </div>
-                        )}
-                        {profileData!.basic_info.phone && (
-                            <div>
-                                <span className="text-gray-400">Phone: </span>
-                                <span>{profileData!.basic_info.phone}</span>
-                            </div>
-                        )}
-                    </div>
-                );
-
-            case 'academics':
-                return (
-                    <div className="space-y-3">
-                        {profileData!.academics.gpa && (
-                            <div>
-                                <span className="text-gray-400">GPA: </span>
-                                <span className="font-semibold">{profileData!.academics.gpa}</span>
-                            </div>
-                        )}
-                        {profileData!.academics.sat_score && (
-                            <div>
-                                <span className="text-gray-400">SAT Score: </span>
-                                <span className="font-semibold">{profileData!.academics.sat_score}</span>
-                            </div>
-                        )}
-                        {profileData!.academics.act_score && (
-                            <div>
-                                <span className="text-gray-400">ACT Score: </span>
-                                <span className="font-semibold">{profileData!.academics.act_score}</span>
-                            </div>
-                        )}
-                        {profileData!.academics.honors_courses.length > 0 && (
-                            <div>
-                                <span className="text-gray-400 block mb-2">Honors Courses:</span>
-                                <div className="flex flex-wrap gap-2">
-                                    {profileData!.academics.honors_courses.map((course, idx) => (
-                                        <span key={idx} className="px-2 py-1 bg-green-600/20 text-green-300 rounded text-sm">
-                                            {course}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                        {profileData!.academics.academic_awards.length > 0 && (
-                            <div>
-                                <span className="text-gray-400 block mb-2">Academic Awards:</span>
-                                <div className="flex flex-wrap gap-2">
-                                    {profileData!.academics.academic_awards.map((award, idx) => (
-                                        <span key={idx} className="px-2 py-1 bg-green-600/20 text-green-300 rounded text-sm">
-                                            {award}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                );
-
-            case 'athletics':
-                return (
-                    <div className="space-y-3">
-                        {profileData!.athletics.sports_played.length > 0 && (
-                            <div>
-                                <span className="text-gray-400 block mb-2">Sports:</span>
-                                <div className="flex flex-wrap gap-2">
-                                    {profileData!.athletics.sports_played.map((sport, idx) => (
-                                        <span key={idx} className="px-2 py-1 bg-orange-600/20 text-orange-300 rounded text-sm">
-                                            {sport}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                        {profileData!.athletics.athletic_awards.length > 0 && (
-                            <div>
-                                <span className="text-gray-400 block mb-2">Athletic Awards:</span>
-                                <div className="flex flex-wrap gap-2">
-                                    {profileData!.athletics.athletic_awards.map((award, idx) => (
-                                        <span key={idx} className="px-2 py-1 bg-orange-600/20 text-orange-300 rounded text-sm">
-                                            {award}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                );
-
-            case 'community':
-                return (
-                    <div className="space-y-3">
-                        {profileData!.community.volunteer_hours && (
-                            <div>
-                                <span className="text-gray-400">Volunteer Hours: </span>
-                                <span className="font-semibold">{profileData!.community.volunteer_hours}</span>
-                            </div>
-                        )}
-                        {profileData!.community.volunteer_organizations.length > 0 && (
-                            <div>
-                                <span className="text-gray-400 block mb-2">Organizations:</span>
-                                <div className="flex flex-wrap gap-2">
-                                    {profileData!.community.volunteer_organizations.map((org, idx) => (
-                                        <span key={idx} className="px-2 py-1 bg-pink-600/20 text-pink-300 rounded text-sm">
-                                            {org}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                );
-
-            case 'activities':
-                return (
-                    <div className="space-y-3">
-                        {profileData!.activities.intended_major && (
-                            <div>
-                                <span className="text-gray-400">Intended Major: </span>
-                                <span className="font-semibold">{profileData!.activities.intended_major}</span>
-                            </div>
-                        )}
-                        {profileData!.activities.career_goals && (
-                            <div>
-                                <span className="text-gray-400 block mb-1">Career Goals:</span>
-                                <p className="text-gray-300">{profileData!.activities.career_goals}</p>
-                            </div>
-                        )}
-                        {profileData!.activities.extracurricular_activities.length > 0 && (
-                            <div>
-                                <span className="text-gray-400 block mb-2">Activities:</span>
-                                <div className="flex flex-wrap gap-2">
-                                    {profileData!.activities.extracurricular_activities.map((activity, idx) => (
-                                        <span key={idx} className="px-2 py-1 bg-purple-600/20 text-purple-300 rounded text-sm">
-                                            {activity}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                );
-
-            default:
-                return null;
-        }
-    };
+    const overallCompletion = calculateOverallCompletion();
 
     return (
-        <div className="min-h-screen bg-gray-900 text-white">
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 text-white">
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-8">
-                <div className="max-w-6xl mx-auto">
+            <div className="bg-gray-800/50 backdrop-blur-sm border-b border-gray-700">
+                <div className="max-w-6xl mx-auto px-6 py-6">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-6">
-                            <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center overflow-hidden">
-                                {imageUrl ? (
-                                    <img
-                                        src={imageUrl}
-                                        alt="Profile photo"
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                            console.error('Profile photo failed to load:', imageUrl);
-                                        }}
-                                    />
-                                ) : (
-                                    <User size={32} className="text-white/70" />
-                                )}
-                            </div>
-                            <div>
-                                <h1 className="text-3xl font-bold">
-                                    {profileData.user.first_name} {profileData.user.last_name}
-                                </h1>
-                                <p className="text-blue-200">{profileData.user.email}</p>
-                                <div className="flex items-center gap-2 mt-2">
-                                    <CheckCircle size={16} className="text-green-400" />
-                                    <span className="text-green-300">
-                                        Profile {profileData.completion.completion_percentage}% Complete
-                                    </span>
-                                </div>
-                            </div>
+                        <div>
+                            <h1 className="text-3xl font-bold mb-2">Your Profile</h1>
+                            <p className="text-gray-300">Manage your information for scholarship matching</p>
                         </div>
 
-                        <div className="flex gap-3">
-                            {/* Dashboard Link - Only visible when authenticated */}
-                            {isAuthenticated && (
+                        <div className="flex items-center gap-4">
+                            <div className="text-right">
+                                <div className="text-2xl font-bold text-green-400">{overallCompletion}%</div>
+                                <div className="text-sm text-gray-400">Complete</div>
+                            </div>
+
+                            {editable && (
                                 <button
-                                    onClick={() => router.push('/dashboard')}
-                                    className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                                    onClick={onEdit}
+                                    className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
                                 >
-                                    <LayoutDashboard size={16} />
-                                    Dashboard
+                                    <Edit size={20} />
+                                    Edit Profile
                                 </button>
                             )}
-
-                            <label className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors cursor-pointer">
-                                <Camera size={16} />
-                                {isUploadingPhoto ? 'Uploading...' : 'Upload Photo'}
-                                <input
-                                    type="file"
-                                    accept="image/jpeg,image/png,image/webp"
-                                    onChange={handlePhotoUpload}
-                                    disabled={isUploadingPhoto}
-                                    style={{ display: 'none' }}
-                                />
-                            </label>
-                            <button
-                                onClick={() => router.push('/profile/edit')}
-                                className="flex items-center gap-2 px-4 py-2 bg-white text-blue-600 hover:bg-gray-100 rounded-lg transition-colors"
-                            >
-                                <Edit size={16} />
-                                Edit Profile
-                            </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Main Content */}
-            <div className="max-w-6xl mx-auto p-8">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-                    {/* Profile Sections */}
-                    <div className="lg:col-span-2 space-y-6">
-                        {sections.map((section) => {
-                            const SectionIcon = section.icon;
-
-                            return (
-                                <div key={section.id} className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`p-2 bg-${section.color}-600/20 rounded-lg`}>
-                                                <SectionIcon size={20} className={`text-${section.color}-400`} />
-                                            </div>
-                                            <h3 className="text-xl font-semibold">{section.title}</h3>
-                                        </div>
-                                        <button
-                                            onClick={() => router.push(section.editLink)}
-                                            className="text-gray-400 hover:text-white"
-                                        >
-                                            <Edit size={16} />
-                                        </button>
-                                    </div>
-
-                                    {renderSectionContent(section)}
+            <div className="max-w-6xl mx-auto px-6 py-8">
+                {/* Completion Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+                    {Object.entries(completionStatus).map(([sectionId, status]) => {
+                        const Icon = getSectionIcon(sectionId);
+                        return (
+                            <div
+                                key={sectionId}
+                                className={`p-4 rounded-lg border ${status.is_completed
+                                        ? 'bg-green-500/10 border-green-500/30'
+                                        : 'bg-yellow-500/10 border-yellow-500/30'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Icon size={16} />
+                                    {status.is_completed ? (
+                                        <CheckCircle size={16} className="text-green-400" />
+                                    ) : (
+                                        <AlertCircle size={16} className="text-yellow-400" />
+                                    )}
                                 </div>
-                            );
-                        })}
+                                <div className="text-sm font-medium mb-1">{status.section_name}</div>
+                                <div className="text-xs text-gray-400">
+                                    {Math.round(status.completion_percentage)}% complete
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Profile Sections */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Basic Information */}
+                    <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 p-6">
+                        <div className="flex items-center gap-3 mb-6">
+                            <User className="w-6 h-6 text-blue-400" />
+                            <h2 className="text-xl font-semibold">Basic Information</h2>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-3">
+                                <Calendar size={16} className="text-gray-400" />
+                                <span className="text-sm text-gray-400 w-24">Born:</span>
+                                <span>{profileData.date_of_birth || 'Not specified'}</span>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <Phone size={16} className="text-gray-400" />
+                                <span className="text-sm text-gray-400 w-24">Phone:</span>
+                                <span>{profileData.phone_number || 'Not specified'}</span>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <GraduationCap size={16} className="text-gray-400" />
+                                <span className="text-sm text-gray-400 w-24">High School:</span>
+                                <span>{profileData.high_school_name || 'Not specified'}</span>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <Calendar size={16} className="text-gray-400" />
+                                <span className="text-sm text-gray-400 w-24">Graduation:</span>
+                                <span>{profileData.graduation_year || 'Not specified'}</span>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <Award size={16} className="text-gray-400" />
+                                <span className="text-sm text-gray-400 w-24">GPA:</span>
+                                <span className={profileData.gpa ? 'font-semibold text-green-400' : ''}>
+                                    {profileData.gpa ? `${profileData.gpa}/4.0` : 'Not specified'}
+                                </span>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <MapPin size={16} className="text-gray-400" />
+                                <span className="text-sm text-gray-400 w-24">Location:</span>
+                                <span>
+                                    {[profileData.city, profileData.state, profileData.zip_code]
+                                        .filter(Boolean)
+                                        .join(', ') || 'Not specified'}
+                                </span>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Sidebar */}
-                    <div className="space-y-6">
-                        {/* Quick Actions - MOVED TO TOP */}
-                        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-                            <h3 className="text-xl font-semibold mb-6">Quick Actions</h3>
-
-                            <div className="space-y-4">
-                                {/* Dashboard Button - Only visible when authenticated */}
-                                {isAuthenticated && (
-                                    <button
-                                        onClick={() => router.push('/dashboard')}
-                                        className="w-full flex items-center gap-3 p-4 bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
-                                    >
-                                        <LayoutDashboard size={18} />
-                                        Go to Dashboard
-                                    </button>
-                                )}
-
-                                <button
-                                    onClick={() => router.push('/profile/edit')}
-                                    className="w-full flex items-center gap-3 p-4 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                                >
-                                    <Edit size={18} />
-                                    Edit Profile Builder
-                                </button>
-
-                                <button className="w-full flex items-center gap-3 p-4 bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
-                                    <FileText size={18} />
-                                    View Scholarship Matches
-                                </button>
-
-                                <button className="w-full flex items-center gap-3 p-4 bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors">
-                                    <Upload size={18} />
-                                    Export Profile PDF
-                                </button>
-                            </div>
+                    {/* Academic Information */}
+                    <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 p-6">
+                        <div className="flex items-center gap-3 mb-6">
+                            <BookOpen className="w-6 h-6 text-green-400" />
+                            <h2 className="text-xl font-semibold">Academic Information</h2>
                         </div>
 
-                        {/* Documents & Essays Section - MOVED BELOW QUICK ACTIONS */}
-                        <DocumentsEssaysSection
-                            uploads={profileData.uploads}
-                            onUploadSuccess={async () => {
-                                try {
-                                    const data = await profileAPI.getProfileView();
-                                    setProfileData(data);
-                                } catch (err) {
-                                    console.error('Error refreshing profile:', err);
-                                }
-                            }}
-                            disabled={isLoading}
-                        />
-
-                        {/* Profile Stats */}
-                        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-                            <h3 className="text-xl font-semibold mb-4">Profile Statistics</h3>
-                            <div className="space-y-4">
-                                <div>
-                                    <span>Completion </span>
-                                    <span>{profileData.completion.completion_percentage}%</span>
-                                </div>
-                                <div className="w-full bg-gray-700 rounded-full h-2">
-                                    <div
-                                        className="bg-blue-500 h-2 rounded-full transition-all duration-500"
-                                        style={{ width: `${profileData.completion.completion_percentage}%` }}
-                                    />
+                        <div className="space-y-4">
+                            <div>
+                                <span className="text-sm text-gray-400 block mb-1">Test Scores:</span>
+                                <div className="space-y-1">
+                                    {profileData.sat_score && (
+                                        <div className="text-sm">
+                                            SAT: <span className="font-semibold text-blue-400">
+                                                {formatTestScore(profileData.sat_score, 1600, 'SAT')}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {profileData.act_score && (
+                                        <div className="text-sm">
+                                            ACT: <span className="font-semibold text-blue-400">
+                                                {formatTestScore(profileData.act_score, 36, 'ACT')}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {!profileData.sat_score && !profileData.act_score && (
+                                        <span className="text-gray-400">Not specified</span>
+                                    )}
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 pt-4">
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold text-blue-400">
-                                        {sections.filter(s => !s.isEmpty).length}
-                                    </div>
-                                    <div className="text-xs text-gray-400">Sections Complete</div>
-                                </div>
-                                <div className="text-center">
-                                    <div className="text-2xl font-bold text-green-400">
-                                        {Object.values(profileData.uploads).filter(Boolean).length}
-                                    </div>
-                                    <div className="text-xs text-gray-400">Documents Uploaded</div>
-                                </div>
+                            <div>
+                                <span className="text-sm text-gray-400 block mb-1">Intended Major:</span>
+                                <span className="font-semibold text-purple-400">
+                                    {profileData.intended_major || 'Not specified'}
+                                </span>
+                            </div>
+
+                            <div>
+                                <span className="text-sm text-gray-400 block mb-1">Academic Interests:</span>
+                                <span>{formatList(profileData.academic_interests)}</span>
+                            </div>
+
+                            <div>
+                                <span className="text-sm text-gray-400 block mb-1">Career Goals:</span>
+                                <span>{formatList(profileData.career_goals)}</span>
                             </div>
                         </div>
+                    </div>
 
-                        {/* Timeline - MOVED TO SIDEBAR */}
-                        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-                            <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                                <Calendar size={20} />
-                                Timeline
-                            </h3>
+                    {/* Activities & Experience */}
+                    <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 p-6">
+                        <div className="flex items-center gap-3 mb-6">
+                            <Target className="w-6 h-6 text-orange-400" />
+                            <h2 className="text-xl font-semibold">Activities & Experience</h2>
+                        </div>
 
-                            <div className="space-y-4">
-                                {profileData.completion.created_at && (
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-3 h-3 bg-blue-500 rounded-full mt-1 flex-shrink-0"></div>
-                                        <div className="flex-1">
-                                            <div className="font-medium">Profile created</div>
-                                            <div className="text-sm text-gray-400 mt-1">
-                                                {new Date(profileData.completion.created_at).toLocaleDateString()}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
+                        <div className="space-y-4">
+                            <div>
+                                <span className="text-sm text-gray-400 block mb-1">Extracurricular Activities:</span>
+                                <span>{formatList(profileData.extracurricular_activities)}</span>
+                            </div>
 
-                                {profileData.completion.updated_at && (
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-3 h-3 bg-green-500 rounded-full mt-1 flex-shrink-0"></div>
-                                        <div className="flex-1">
-                                            <div className="font-medium">Last updated</div>
-                                            <div className="text-sm text-gray-400 mt-1">
-                                                {new Date(profileData.completion.updated_at).toLocaleDateString()}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
+                            <div>
+                                <span className="text-sm text-gray-400 block mb-1">Volunteer Experience:</span>
+                                <span>{formatList(profileData.volunteer_experience)}</span>
+                            </div>
 
-                                {profileData.completion.profile_completed && (
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-3 h-3 bg-purple-500 rounded-full mt-1 flex-shrink-0"></div>
-                                        <div className="flex-1">
-                                            <div className="font-medium">Profile completed</div>
-                                            <div className="text-sm text-gray-400 mt-1">Ready for applications</div>
-                                        </div>
-                                    </div>
-                                )}
+                            <div className="flex items-center gap-3">
+                                <Heart size={16} className="text-red-400" />
+                                <span className="text-sm text-gray-400">Volunteer Hours:</span>
+                                <span className="font-semibold text-red-400">
+                                    {profileData.volunteer_hours || 'Not specified'}
+                                </span>
+                            </div>
 
-                                {/* Add a completion milestone */}
-                                {profileData.completion.completion_percentage >= 50 && (
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-3 h-3 bg-yellow-500 rounded-full mt-1 flex-shrink-0"></div>
-                                        <div className="flex-1">
-                                            <div className="font-medium">Halfway milestone</div>
-                                            <div className="text-sm text-gray-400 mt-1">Profile is {profileData.completion.completion_percentage}% complete</div>
-                                        </div>
-                                    </div>
-                                )}
+                            <div>
+                                <span className="text-sm text-gray-400 block mb-1">Special Talents:</span>
+                                <span>{formatList(profileData.special_talents)}</span>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <Globe size={16} className="text-blue-400" />
+                                <span className="text-sm text-gray-400">Languages:</span>
+                                <span>{formatList(profileData.languages_preferred)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Background & Demographics */}
+                    <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 p-6">
+                        <div className="flex items-center gap-3 mb-6">
+                            <Users className="w-6 h-6 text-purple-400" />
+                            <h2 className="text-xl font-semibold">Background & Demographics</h2>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <span className="text-sm text-gray-400 block mb-1">Ethnicity:</span>
+                                <span>{formatList(profileData.ethnicity, 'Prefer not to say')}</span>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <TrendingUp size={16} className="text-green-400" />
+                                <span className="text-sm text-gray-400">First Generation College:</span>
+                                <span className={profileData.first_generation_college ? 'text-green-400 font-semibold' : ''}>
+                                    {profileData.first_generation_college === true ? 'Yes' :
+                                        profileData.first_generation_college === false ? 'No' : 'Not specified'}
+                                </span>
+                            </div>
+
+                            <div>
+                                <span className="text-sm text-gray-400 block mb-1">Household Income Range:</span>
+                                <span>{profileData.household_income_range || 'Not specified'}</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Bottom padding for better visual spacing */}
-                <div className="h-8"></div>
+                {/* Essays & Statements */}
+                {(profileData.personal_statement || profileData.leadership_essay || profileData.community_service_essay) && (
+                    <div className="mt-8 bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 p-6">
+                        <div className="flex items-center gap-3 mb-6">
+                            <FileText className="w-6 h-6 text-yellow-400" />
+                            <h2 className="text-xl font-semibold">Essays & Statements</h2>
+                        </div>
+
+                        <div className="space-y-6">
+                            {profileData.personal_statement && (
+                                <div>
+                                    <h3 className="font-semibold text-yellow-300 mb-2">Personal Statement</h3>
+                                    <div className="bg-gray-700/50 rounded-lg p-4 text-sm leading-relaxed">
+                                        {profileData.personal_statement}
+                                    </div>
+                                </div>
+                            )}
+
+                            {profileData.leadership_essay && (
+                                <div>
+                                    <h3 className="font-semibold text-yellow-300 mb-2">Leadership Experience</h3>
+                                    <div className="bg-gray-700/50 rounded-lg p-4 text-sm leading-relaxed">
+                                        {profileData.leadership_essay}
+                                    </div>
+                                </div>
+                            )}
+
+                            {profileData.community_service_essay && (
+                                <div>
+                                    <h3 className="font-semibold text-yellow-300 mb-2">Community Service</h3>
+                                    <div className="bg-gray-700/50 rounded-lg p-4 text-sm leading-relaxed">
+                                        {profileData.community_service_essay}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Preferences */}
+                <div className="mt-8 bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                        <Settings className="w-6 h-6 text-gray-400" />
+                        <h2 className="text-xl font-semibold">Scholarship Preferences</h2>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <span className="text-sm text-gray-400 block mb-2">Scholarship Types Interested:</span>
+                            <div className="flex flex-wrap gap-2">
+                                {profileData.scholarship_types_interested?.map((type) => (
+                                    <span key={type} className="px-3 py-1 bg-blue-600/20 text-blue-300 rounded-full text-sm">
+                                        {type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                    </span>
+                                )) || <span className="text-gray-400">Not specified</span>}
+                            </div>
+                        </div>
+
+                        <div>
+                            <span className="text-sm text-gray-400 block mb-2">College Size Preference:</span>
+                            <span>{formatList(profileData.college_size_preference)}</span>
+                        </div>
+
+                        <div>
+                            <span className="text-sm text-gray-400 block mb-2">College Location Preference:</span>
+                            <span>{formatList(profileData.college_location_preference)}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="mt-8 flex justify-center gap-4">
+                    {editable && (
+                        <button
+                            onClick={onEdit}
+                            className="flex items-center gap-2 px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                        >
+                            <Edit size={20} />
+                            Edit Profile
+                        </button>
+                    )}
+
+                    <button
+                        onClick={() => window.location.href = '/scholarships'}
+                        className="flex items-center gap-2 px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                        <Award size={20} />
+                        Find Scholarships
+                    </button>
+                </div>
             </div>
         </div>
     );
-}
+};
 
 export default ProfileView;
