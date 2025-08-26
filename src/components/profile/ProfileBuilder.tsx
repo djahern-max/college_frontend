@@ -1,3 +1,5 @@
+'use client';
+
 // ProfileBuilder Component - Fixed with proper validation and API calls
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Save, User, GraduationCap, Target, Users, FileText, Settings, SkipForward, CheckCircle } from 'lucide-react';

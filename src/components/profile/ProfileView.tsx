@@ -1,3 +1,5 @@
+'use client';
+
 // ProfileView Component - Displays completed profile information
 import React, { useState, useEffect } from 'react';
 import {
