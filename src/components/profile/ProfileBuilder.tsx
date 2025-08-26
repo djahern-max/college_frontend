@@ -3,7 +3,34 @@
 // ProfileBuilder Component - Fixed with proper validation and API calls
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Save, User, GraduationCap, Target, Users, FileText, Settings, SkipForward, CheckCircle } from 'lucide-react';
-import { profileAPI } from '@/lib/profileAPI';
+import { apiRequest, API_ENDPOINTS } from '@/lib/api';
+
+// Temporary inline API functions until profileAPI is fully integrated
+const tempProfileAPI = {
+    async getMyProfile() {
+        try {
+            return await apiRequest(API_ENDPOINTS.PROFILES);
+        } catch (error: any) {
+            if (error.status === 404) {
+                return {}; // Return empty profile if none exists
+            }
+            throw error;
+        }
+    },
+
+    async updateProfile(profileData: any) {
+        return await apiRequest(API_ENDPOINTS.PROFILES, {
+            method: 'PUT',
+            body: JSON.stringify(profileData),
+        });
+    },
+
+    async completeProfile() {
+        return await apiRequest(API_ENDPOINTS.PROFILE_COMPLETE, {
+            method: 'POST',
+        });
+    }
+};
 
 interface ProfileData {
     // Basic Information (matching scholarship requirements)
@@ -488,7 +515,7 @@ const ProfileBuilder: React.FC = () => {
 
                 // Clean the data before sending
                 const cleanedData = cleanProfileData(profileData);
-                await profileAPI.updateProfile(cleanedData);
+                await tempProfileAPI.updateProfile(cleanedData);
 
                 setSaveStatus('saved');
                 setLastSaved(new Date());
@@ -508,7 +535,7 @@ const ProfileBuilder: React.FC = () => {
     useEffect(() => {
         const loadProfile = async () => {
             try {
-                const data = await profileAPI.getMyProfile();
+                const data = await tempProfileAPI.getMyProfile();
                 if (data && Object.keys(data).length > 0) {
                     setProfileData(data);
                 }
@@ -704,10 +731,10 @@ const ProfileBuilder: React.FC = () => {
             const cleanedData = cleanProfileData(profileData);
 
             // First update the profile with final data
-            await profileAPI.updateProfile(cleanedData);
+            await tempProfileAPI.updateProfile(cleanedData);
 
             // Then mark it as completed
-            await profileAPI.completeProfile();
+            await tempProfileAPI.completeProfile();
 
             // Redirect to dashboard or show success message
             window.location.href = '/dashboard';
@@ -799,8 +826,8 @@ const ProfileBuilder: React.FC = () => {
                         <button
                             onClick={() => updateProfileData(question.id, true)}
                             className={`flex-1 p-4 rounded-lg border-2 transition-colors ${boolValue === true
-                                    ? 'border-blue-500 bg-blue-600/20 text-blue-300'
-                                    : 'border-gray-600 bg-gray-700/50 text-gray-300 hover:border-gray-500 hover:bg-gray-700'
+                                ? 'border-blue-500 bg-blue-600/20 text-blue-300'
+                                : 'border-gray-600 bg-gray-700/50 text-gray-300 hover:border-gray-500 hover:bg-gray-700'
                                 }`}
                         >
                             Yes
@@ -808,8 +835,8 @@ const ProfileBuilder: React.FC = () => {
                         <button
                             onClick={() => updateProfileData(question.id, false)}
                             className={`flex-1 p-4 rounded-lg border-2 transition-colors ${boolValue === false
-                                    ? 'border-blue-500 bg-blue-600/20 text-blue-300'
-                                    : 'border-gray-600 bg-gray-700/50 text-gray-300 hover:border-gray-500 hover:bg-gray-700'
+                                ? 'border-blue-500 bg-blue-600/20 text-blue-300'
+                                : 'border-gray-600 bg-gray-700/50 text-gray-300 hover:border-gray-500 hover:bg-gray-700'
                                 }`}
                         >
                             No
@@ -831,8 +858,8 @@ const ProfileBuilder: React.FC = () => {
                                     updateProfileData(question.id, newValues.length > 0 ? newValues : undefined);
                                 }}
                                 className={`p-3 rounded-lg border-2 text-left transition-colors ${selectedValues.includes(option.value)
-                                        ? 'border-blue-500 bg-blue-600/20 text-blue-300'
-                                        : 'border-gray-600 bg-gray-700/50 text-gray-300 hover:border-gray-500 hover:bg-gray-700'
+                                    ? 'border-blue-500 bg-blue-600/20 text-blue-300'
+                                    : 'border-gray-600 bg-gray-700/50 text-gray-300 hover:border-gray-500 hover:bg-gray-700'
                                     }`}
                             >
                                 {option.label}
@@ -925,8 +952,8 @@ const ProfileBuilder: React.FC = () => {
                         <div className="flex items-center gap-2 text-sm">
                             <Save size={16} />
                             <span className={`${saveStatus === 'saved' ? 'text-green-400' :
-                                    saveStatus === 'saving' ? 'text-yellow-400' :
-                                        saveStatus === 'error' ? 'text-red-400' : 'text-gray-400'
+                                saveStatus === 'saving' ? 'text-yellow-400' :
+                                    saveStatus === 'error' ? 'text-red-400' : 'text-gray-400'
                                 }`}>
                                 {saveStatus === 'saved' ? 'Saved' :
                                     saveStatus === 'saving' ? 'Saving...' :
@@ -954,10 +981,10 @@ const ProfileBuilder: React.FC = () => {
                                     setCurrentQuestion(0);
                                 }}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${index === currentSection
-                                        ? 'bg-blue-600 text-white'
-                                        : index < currentSection
-                                            ? 'bg-green-600/20 text-green-300 border border-green-600/30'
-                                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                    ? 'bg-blue-600 text-white'
+                                    : index < currentSection
+                                        ? 'bg-green-600/20 text-green-300 border border-green-600/30'
+                                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                                     }`}
                             >
                                 <section.icon size={16} />
@@ -1063,10 +1090,10 @@ const ProfileBuilder: React.FC = () => {
                                         <div
                                             key={qIndex}
                                             className={`w-3 h-3 rounded-full transition-colors ${isActive
-                                                    ? 'bg-blue-500'
-                                                    : isCompleted
-                                                        ? 'bg-green-500'
-                                                        : 'bg-gray-600'
+                                                ? 'bg-blue-500'
+                                                : isCompleted
+                                                    ? 'bg-green-500'
+                                                    : 'bg-gray-600'
                                                 }`}
                                         />
                                     );
@@ -1082,3 +1109,4 @@ const ProfileBuilder: React.FC = () => {
 };
 
 export default ProfileBuilder;
+
